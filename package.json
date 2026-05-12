@@ -1,0 +1,15 @@
+{
+  "name": "visualisasi-lrt",
+  "version": "1.0.0",
+  "main": "potong_jalur.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@turf/turf": "^7.3.5"
+  }
+}
