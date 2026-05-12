@@ -582,6 +582,83 @@ function getTravelTime(a, b) {
   return (TRAVEL_TIMES[key1] || TRAVEL_TIMES[key2] || 4) * 60; // convert to seconds
 }
 
+// ═══════════════════════════════════════════════════════════
+// ROUTE GEOMETRY (loaded from rute_lrt_siap_pakai.geojson)
+// ═══════════════════════════════════════════════════════════
+
+// Lookup: ROUTE_SEGMENTS[routeName]["fromStation_TO_toStation"] = { coords: [[lon,lat],...], cumDist: [...] }
+const ROUTE_SEGMENTS = {};
+
+function haversineDist(lon1, lat1, lon2, lat2) {
+  const R = 6371000;
+  const p1 = lat1 * Math.PI/180, p2 = lat2 * Math.PI/180;
+  const dp = (lat2-lat1)*Math.PI/180, dl = (lon2-lon1)*Math.PI/180;
+  const a = Math.sin(dp/2)**2 + Math.cos(p1)*Math.cos(p2)*Math.sin(dl/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function buildCumulativeDistances(coords) {
+  const cumDist = [0];
+  for (let i = 1; i < coords.length; i++) {
+    const d = haversineDist(coords[i-1][0], coords[i-1][1], coords[i][0], coords[i][1]);
+    cumDist.push(cumDist[i-1] + d);
+  }
+  return cumDist;
+}
+
+function interpolateAlongTrack(segmentData, frac) {
+  // Interpolate position along a track segment at fraction frac (0-1)
+  if (!segmentData || !segmentData.coords || segmentData.coords.length < 2) return null;
+  const { coords, cumDist } = segmentData;
+  const totalLen = cumDist[cumDist.length - 1];
+  const targetDist = frac * totalLen;
+  
+  // Find the two points that bracket targetDist
+  for (let i = 1; i < cumDist.length; i++) {
+    if (cumDist[i] >= targetDist) {
+      const segLen = cumDist[i] - cumDist[i-1];
+      const t = segLen > 0 ? (targetDist - cumDist[i-1]) / segLen : 0;
+      const lon = coords[i-1][0] + (coords[i][0] - coords[i-1][0]) * t;
+      const lat = coords[i-1][1] + (coords[i][1] - coords[i-1][1]) * t;
+      return { lat, lon };
+    }
+  }
+  // Fallback: end of track
+  const last = coords[coords.length - 1];
+  return { lat: last[1], lon: last[0] };
+}
+
+function getSegmentKey(fromStation, toStation) {
+  return `${fromStation}_TO_${toStation}`;
+}
+
+function getRouteSegment(routeName, fromStation, toStation) {
+  if (!ROUTE_SEGMENTS[routeName]) return null;
+  return ROUTE_SEGMENTS[routeName][getSegmentKey(fromStation, toStation)] || null;
+}
+
+async function loadRouteSegments() {
+  try {
+    const response = await fetch('./rute_lrt_siap_pakai.geojson');
+    if (!response.ok) throw new Error('Failed to load route segments');
+    const geojson = await response.json();
+    
+    geojson.features.forEach(feat => {
+      const { route, from: fromSt, to: toSt } = feat.properties;
+      const coords = feat.geometry.coordinates;
+      const cumDist = buildCumulativeDistances(coords);
+      
+      if (!ROUTE_SEGMENTS[route]) ROUTE_SEGMENTS[route] = {};
+      ROUTE_SEGMENTS[route][getSegmentKey(fromSt, toSt)] = { coords, cumDist };
+    });
+    
+    console.log('✅ Route segments loaded:', Object.keys(ROUTE_SEGMENTS));
+  } catch (err) {
+    console.error('❌ Failed to load route segments:', err);
+    console.warn('Falling back to straight-line interpolation');
+  }
+}
+
 // Dwell time at station (seconds)
 const DWELL_TIME = 45;
 
@@ -769,14 +846,28 @@ function getTrainState(train, t) {
         // Smooth easing
         const ease = frac < 0.5 ? 2*frac*frac : -1+(4-2*frac)*frac;
         
-        const fromSt = STATIONS[curr.stationId];
-        const toSt = STATIONS[next.stationId];
+        // Try to interpolate along actual track geometry
+        const segment = getRouteSegment(train.route, curr.stationId, next.stationId);
+        let lat, lon;
+        
+        if (segment) {
+          const pos = interpolateAlongTrack(segment, ease);
+          lat = pos.lat;
+          lon = pos.lon;
+        } else {
+          // Fallback: straight line interpolation
+          const fromSt = STATIONS[curr.stationId];
+          const toSt = STATIONS[next.stationId];
+          lat = fromSt.lat + (toSt.lat - fromSt.lat) * ease;
+          lon = fromSt.lon + (toSt.lon - fromSt.lon) * ease;
+        }
+        
         return {
           phase: 'moving',
           fromStation: curr.stationId,
           toStation: next.stationId,
-          lat: fromSt.lat + (toSt.lat - fromSt.lat) * ease,
-          lon: fromSt.lon + (toSt.lon - fromSt.lon) * ease,
+          lat,
+          lon,
           frac: ease,
           stationIndex: i,
           totalStations: timings.length,
@@ -835,23 +926,54 @@ fetch('./export.geojson')
 
 // Draw stylized route lines (on top of OSM track)
 const LINE_COLORS = { main: '#a855f7', cibubur: '#00c8ff', bekasi: '#ff9900' };
+const routePolylines = { main: null, cibubur: null, bekasi: null };
 
-// Main line: Dukuh Atas → Cawang
-function makeLineCoords(stIds) {
-  return stIds.map(id => [STATIONS[id].lat, STATIONS[id].lon]);
+// Draw colored route lines from GeoJSON route segments (called after loading)
+function drawRouteLines() {
+  const mainStations = ['dukuh_atas','setiabudi','rasuna_said','kuningan','pancoran','cikoko','ciliwung','cawang'];
+  const cibuburStations = ['cawang','taman_mini','kampung_rambutan','ciracas','harjamukti'];
+  const bekasiStations = ['cawang','halim','jatibening','cikunir1','cikunir2','bekasi_barat','jatimulya'];
+  
+  function collectCoords(stationList, routeName) {
+    const allCoords = [];
+    for (let i = 0; i < stationList.length - 1; i++) {
+      const seg = getRouteSegment(routeName, stationList[i], stationList[i+1]);
+      if (seg) {
+        // Convert [lon,lat] to [lat,lon] for Leaflet
+        const leafletCoords = seg.coords.map(c => [c[1], c[0]]);
+        if (allCoords.length > 0) leafletCoords.shift(); // skip duplicate junction point
+        allCoords.push(...leafletCoords);
+      }
+    }
+    return allCoords;
+  }
+  
+  // Main line (use Track A direction for display)
+  const mainCoords = collectCoords(mainStations, 'dukuh_to_cibubur');
+  if (mainCoords.length > 0) {
+    routePolylines.main = L.polyline(mainCoords, { color: '#a855f7', weight: 4, opacity: 0.7 }).addTo(map);
+  }
+  
+  // Cibubur branch
+  const cibuburCoords = collectCoords(cibuburStations, 'dukuh_to_cibubur');
+  if (cibuburCoords.length > 0) {
+    routePolylines.cibubur = L.polyline(cibuburCoords, { color: '#00c8ff', weight: 4, opacity: 0.7 }).addTo(map);
+  }
+  
+  // Bekasi branch
+  const bekasiCoords = collectCoords(bekasiStations, 'dukuh_to_bekasi');
+  if (bekasiCoords.length > 0) {
+    routePolylines.bekasi = L.polyline(bekasiCoords, { color: '#ff9900', weight: 4, opacity: 0.7 }).addTo(map);
+  }
+  
+  // Fallback if no route data loaded
+  if (!mainCoords.length) {
+    const makeLineCoords = (stIds) => stIds.map(id => [STATIONS[id].lat, STATIONS[id].lon]);
+    L.polyline(makeLineCoords(ROUTES.cibubur_to_dukuh.slice(4)), { color: '#a855f7', weight: 4, opacity: 0.7 }).addTo(map);
+    L.polyline(makeLineCoords(ROUTES.cibubur_to_dukuh.slice(0, 5)), { color: '#00c8ff', weight: 4, opacity: 0.7 }).addTo(map);
+    L.polyline(makeLineCoords(ROUTES.bekasi_to_dukuh.slice(0, 7)), { color: '#ff9900', weight: 4, opacity: 0.7 }).addTo(map);
+  }
 }
-
-const mainLine = L.polyline(makeLineCoords(ROUTES.cibubur_to_dukuh.slice(4)), {
-  color: '#a855f7', weight: 4, opacity: 0.7, dashArray: null,
-}).addTo(map);
-
-const cibuburLine = L.polyline(makeLineCoords(ROUTES.cibubur_to_dukuh.slice(0, 5)), {
-  color: '#00c8ff', weight: 4, opacity: 0.7,
-}).addTo(map);
-
-const bekasiLine = L.polyline(makeLineCoords(ROUTES.bekasi_to_dukuh.slice(0, 7)), {
-  color: '#ff9900', weight: 4, opacity: 0.7,
-}).addTo(map);
 
 // Station markers
 const stationMarkers = {};
@@ -1134,8 +1256,15 @@ function update() {
 // ═══════════════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════════════
-initSimTime();
-update();
+async function init() {
+  // Load route segments first, then start simulation
+  await loadRouteSegments();
+  drawRouteLines();
+  initSimTime();
+  update();
+}
+
+init();
 
 // Add keyboard shortcut to reset to real time
 document.addEventListener('keydown', e => {
