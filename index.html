@@ -659,16 +659,9 @@ async function loadRouteSegments() {
   }
 }
 
-// Dwell time at station (seconds)
-const DWELL_TIME = 45;
-
 // ═══════════════════════════════════════════════════════════
-// SCHEDULE GENERATION
+// UTILITY FUNCTIONS
 // ═══════════════════════════════════════════════════════════
-
-function timeToSeconds(hh, mm, ss = 0) {
-  return hh * 3600 + mm * 60 + ss;
-}
 
 function secondsToTime(s) {
   s = ((s % 86400) + 86400) % 86400;
@@ -678,103 +671,27 @@ function secondsToTime(s) {
   return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
 }
 
-function buildRouteTimings(stationList, departureTime) {
-  // Returns array of {stationId, arriveAt, departAt}
-  const timings = [];
-  let t = departureTime;
-  for (let i = 0; i < stationList.length; i++) {
-    const stId = stationList[i];
-    const arriveAt = i === 0 ? t : t;
-    const departAt = i === stationList.length - 1 ? arriveAt + DWELL_TIME : arriveAt + DWELL_TIME;
-    timings.push({ stationId: stId, arriveAt, departAt });
-    if (i < stationList.length - 1) {
-      t = departAt + getTravelTime(stationList[i], stationList[i+1]);
-    }
+// Dwell time at station (seconds)
+const DWELL_TIME = 45;
+
+// ═══════════════════════════════════════════════════════════
+// SCHEDULE DATA (loaded from external JSON)
+// ═══════════════════════════════════════════════════════════
+
+let ALL_TRAINS = [];
+
+async function loadScheduleData() {
+  try {
+    const response = await fetch('./schedule_data.json');
+    if (!response.ok) throw new Error('Failed to load schedule data');
+    ALL_TRAINS = await response.json();
+    console.log(`✅ Loaded ${ALL_TRAINS.length} trips from schedule_data.json`);
+  } catch (err) {
+    console.error('❌ Failed to load schedule:', err);
+    // Fallback to empty array (no trains will show)
+    ALL_TRAINS = [];
   }
-  return timings;
 }
-
-// Generate full day schedule
-function generateSchedule() {
-  const trains = [];
-  let id = 1;
-
-  // CIBUBUR LINE: Harjamukti → Dukuh Atas, every 15min from 05:00 to 22:00
-  // Then return Dukuh Atas → Harjamukti offset by travel time
-  const cibuburStart = timeToSeconds(5, 0);
-  const cibuburEnd = timeToSeconds(22, 30);
-  const cibuburInterval = 15 * 60;
-
-  for (let dep = cibuburStart; dep <= cibuburEnd; dep += cibuburInterval) {
-    const timings = buildRouteTimings(ROUTES.cibubur_to_dukuh, dep);
-    trains.push({
-      id: `C${String(id).padStart(3,'0')}`,
-      route: 'cibubur_to_dukuh',
-      line: 'cibubur',
-      direction: '→ Dukuh Atas',
-      origin: 'Harjamukti',
-      dest: 'Dukuh Atas 2',
-      timings,
-      color: '#00c8ff',
-    });
-    id++;
-  }
-
-  // Return trips
-  for (let dep = cibuburStart + 45*60; dep <= cibuburEnd + 90*60; dep += cibuburInterval) {
-    const timings = buildRouteTimings(ROUTES.dukuh_to_cibubur, dep);
-    trains.push({
-      id: `C${String(id).padStart(3,'0')}`,
-      route: 'dukuh_to_cibubur',
-      line: 'cibubur',
-      direction: '→ Harjamukti',
-      origin: 'Dukuh Atas 2',
-      dest: 'Harjamukti',
-      timings,
-      color: '#00c8ff',
-    });
-    id++;
-  }
-
-  // BEKASI LINE: Jatimulya → Dukuh Atas, every 20min from 05:15 to 22:00
-  const bekasiStart = timeToSeconds(5, 15);
-  const bekasiEnd = timeToSeconds(22, 30);
-  const bekasiInterval = 20 * 60;
-
-  for (let dep = bekasiStart; dep <= bekasiEnd; dep += bekasiInterval) {
-    const timings = buildRouteTimings(ROUTES.bekasi_to_dukuh, dep);
-    trains.push({
-      id: `B${String(id).padStart(3,'0')}`,
-      route: 'bekasi_to_dukuh',
-      line: 'bekasi',
-      direction: '→ Dukuh Atas',
-      origin: 'Jatimulya',
-      dest: 'Dukuh Atas 2',
-      timings,
-      color: '#ff9900',
-    });
-    id++;
-  }
-
-  for (let dep = bekasiStart + 60*60; dep <= bekasiEnd + 120*60; dep += bekasiInterval) {
-    const timings = buildRouteTimings(ROUTES.dukuh_to_bekasi, dep);
-    trains.push({
-      id: `B${String(id).padStart(3,'0')}`,
-      route: 'dukuh_to_bekasi',
-      line: 'bekasi',
-      direction: '→ Jatimulya',
-      origin: 'Dukuh Atas 2',
-      dest: 'Jatimulya',
-      timings,
-      color: '#ff9900',
-    });
-    id++;
-  }
-
-  return trains;
-}
-
-const ALL_TRAINS = generateSchedule();
 
 // ═══════════════════════════════════════════════════════════
 // TIME SIMULATION
@@ -1257,7 +1174,8 @@ function update() {
 // INIT
 // ═══════════════════════════════════════════════════════════
 async function init() {
-  // Load route segments first, then start simulation
+  // Load external schedule data first, then route segments
+  await loadScheduleData();
   await loadRouteSegments();
   drawRouteLines();
   initSimTime();

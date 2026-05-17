@@ -60,6 +60,25 @@ def chain_ways(way_specs):
         result.extend(coords)
     return result
 
+def densify_track(coords, max_gap=200):
+    """Fill gaps in track coordinates by inserting intermediate points.
+    When two consecutive points are more than max_gap meters apart,
+    insert evenly-spaced intermediate points to smooth the gap.
+    """
+    result = [coords[0]]
+    for i in range(1, len(coords)):
+        d = haversine(coords[i-1][0], coords[i-1][1], coords[i][0], coords[i][1])
+        if d > max_gap:
+            # Insert intermediate points
+            n_segments = max(2, int(d / max_gap) + 1)
+            for j in range(1, n_segments):
+                t = j / n_segments
+                lon = coords[i-1][0] + (coords[i][0] - coords[i-1][0]) * t
+                lat = coords[i-1][1] + (coords[i][1] - coords[i-1][1]) * t
+                result.append([lon, lat])
+        result.append(coords[i])
+    return result
+
 # ═══════════════════════════════════════════════════════════════
 # TRACK CHAINS - Manually traced from connectivity analysis
 # Each chain: list of (way_id, is_reversed)
@@ -194,6 +213,10 @@ tracks = {
     "bekasi_A": chain_ways(bekasi_trackA),   # Cawang → Jatimulya
     "bekasi_B": chain_ways(bekasi_trackB),   # Jatimulya → Cawang
 }
+
+# Densify all tracks to fill gaps from sparse OSM data
+for name in tracks:
+    tracks[name] = densify_track(tracks[name], max_gap=200)
 
 for name, coords in tracks.items():
     length = sum(haversine(coords[i][0],coords[i][1],coords[i+1][0],coords[i+1][1]) for i in range(len(coords)-1))
