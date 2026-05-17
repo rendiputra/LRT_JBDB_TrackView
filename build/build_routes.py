@@ -27,8 +27,13 @@ def interpolate_on_line(coords, seg_idx, t):
     return [a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t]
 
 # ─── Load GeoJSON ───
+import os
+
+data_dir = 'public'
+output_dir = 'public'
+
 print("Loading export.geojson...")
-with open("export.geojson") as f:
+with open(os.path.join(data_dir, "export.geojson")) as f:
     data = json.load(f)
 
 # Index features by way ID
@@ -372,6 +377,12 @@ all_segments.extend(segs8)
 # OUTPUT
 # ═══════════════════════════════════════════════════════════════
 
+import os
+
+# Paths - assuming script is run from project root
+data_dir = 'public'
+output_dir = 'public'
+
 features = []
 for seg in all_segments:
     # Key includes route for direction-specific lookup
@@ -391,10 +402,11 @@ for seg in all_segments:
     })
 
 output = {"type": "FeatureCollection", "features": features}
-with open("rute_lrt_siap_pakai.geojson", "w") as f:
+output_path = os.path.join(output_dir, "rute_lrt_siap_pakai.geojson")
+with open(output_path, "w") as f:
     json.dump(output, f)
 
-print(f"\n🎉 Output: rute_lrt_siap_pakai.geojson ({len(features)} segments)")
+print(f"\n🎉 Output: {output_path} ({len(features)} segments)")
 
 # Final validation
 print("\n=== Final Validation ===")

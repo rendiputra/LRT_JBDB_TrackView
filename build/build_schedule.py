@@ -190,38 +190,50 @@ def parse_cibubur(filename):
 
 
 if __name__ == '__main__':
+    # Paths - assuming script is run from project root
+    data_dir = 'data'
+    output_dir = 'public'
+
     # Generate weekdays schedule (from raw_d.txt and raw_e.txt)
-    if os.path.exists('raw_d.txt') and os.path.exists('raw_e.txt'):
-        trains_b_weekdays = parse_bekasi('raw_d.txt')
-        trains_c_weekdays = parse_cibubur('raw_e.txt')
+    weekdays_bekasi = os.path.join(data_dir, 'raw_d.txt')
+    weekdays_cibubur = os.path.join(data_dir, 'raw_e.txt')
+
+    if os.path.exists(weekdays_bekasi) and os.path.exists(weekdays_cibubur):
+        trains_b_weekdays = parse_bekasi(weekdays_bekasi)
+        trains_c_weekdays = parse_cibubur(weekdays_cibubur)
 
         all_trains_weekdays = trains_b_weekdays + trains_c_weekdays
 
         bekasi_count_wd = sum(1 for t in all_trains_weekdays if t['line'] == 'bekasi')
         cibubur_count_wd = sum(1 for t in all_trains_weekdays if t['line'] == 'cibubur')
 
-        with open('schedule_data_weekdays.json', 'w') as f:
+        output_path = os.path.join(output_dir, 'schedule_data_weekdays.json')
+        with open(output_path, 'w') as f:
             json.dump(all_trains_weekdays, f, indent=2)
 
-        print(f"Generated schedule_data_weekdays.json:")
+        print(f"Generated {output_path}:")
         print(f"  Bekasi: {bekasi_count_wd} trips")
         print(f"  Cibubur: {cibubur_count_wd} trips")
         print(f"  Total: {len(all_trains_weekdays)} trips")
 
     # Generate weekends schedule (from raw_b.txt and raw_c.txt)
-    if os.path.exists('raw_b.txt') and os.path.exists('raw_c.txt'):
-        trains_b = parse_bekasi('raw_b.txt')
-        trains_c = parse_cibubur('raw_c.txt')
+    weekends_bekasi = os.path.join(data_dir, 'raw_b.txt')
+    weekends_cibubur = os.path.join(data_dir, 'raw_c.txt')
+
+    if os.path.exists(weekends_bekasi) and os.path.exists(weekends_cibubur):
+        trains_b = parse_bekasi(weekends_bekasi)
+        trains_c = parse_cibubur(weekends_cibubur)
 
         all_trains = trains_b + trains_c
 
         bekasi_count = sum(1 for t in all_trains if t['line'] == 'bekasi')
         cibubur_count = sum(1 for t in all_trains if t['line'] == 'cibubur')
 
-        with open('schedule_data.json', 'w') as f:
+        output_path = os.path.join(output_dir, 'schedule_data.json')
+        with open(output_path, 'w') as f:
             json.dump(all_trains, f, indent=2)
 
-        print(f"Generated schedule_data.json (weekends):")
+        print(f"Generated {output_path} (weekends):")
         print(f"  Bekasi: {bekasi_count} trips")
         print(f"  Cibubur: {cibubur_count} trips")
         print(f"  Total: {len(all_trains)} trips")
