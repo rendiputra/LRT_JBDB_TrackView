@@ -652,9 +652,9 @@ async function loadRouteSegments() {
       ROUTE_SEGMENTS[route][getSegmentKey(fromSt, toSt)] = { coords, cumDist };
     });
     
-    console.log('✅ Route segments loaded:', Object.keys(ROUTE_SEGMENTS));
+    console.log('Route segments loaded:', Object.keys(ROUTE_SEGMENTS));
   } catch (err) {
-    console.error('❌ Failed to load route segments:', err);
+    console.error('Failed to load route segments:', err);
     console.warn('Falling back to straight-line interpolation');
   }
 }
@@ -682,13 +682,69 @@ let ALL_TRAINS = [];
 
 async function loadScheduleData() {
   try {
-    const response = await fetch('./schedule_data.json');
+    // Load holidays data first
+    let holidays = [];
+    try {
+      const holidayResponse = await fetch('./hari_libur/hari_libur2026.json');
+      if (holidayResponse.ok) {
+        const holidayData = await holidayResponse.json();
+        holidays = holidayData.data || [];
+      }
+    } catch (err) {
+      console.warn('Gagal memuat data hari libur:', err);
+    }
+
+    // Determine if today is a holiday or weekend
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0]; // YYYY-MM-DD
+    const dayOfWeek = today.getDay(); // 0=Sunday, 6=Saturday
+
+    // Check if today is a holiday (is_holiday=true OR is_joint_holiday=true)
+    const isHoliday = holidays.some(h =>
+      h.date === todayStr && (h.is_holiday || h.is_joint_holiday)
+    );
+
+    // Weekend: Saturday (6) or Sunday (0)
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+
+    // Use weekends schedule on weekends and holidays, weekdays schedule otherwise
+    const useWeekendSchedule = isWeekend || isHoliday;
+
+    let scheduleFile = useWeekendSchedule ? './schedule_data.json' : './schedule_data_weekdays.json';
+
+    // Get holiday name if today is a holiday
+    const holidayInfo = holidays.find(h => h.date === todayStr && (h.is_holiday || h.is_joint_holiday));
+
+    // Update header with schedule type info
+    let scheduleInfo = useWeekendSchedule ? 'Jadwal Akhir Pekan/Libur' : 'Jadwal Hari Kerja';
+    if (holidayInfo) {
+      scheduleInfo = `LIBUR: ${holidayInfo.name}`;
+    }
+
+    const response = await fetch(scheduleFile);
     if (!response.ok) throw new Error('Failed to load schedule data');
     ALL_TRAINS = await response.json();
-    console.log(`✅ Loaded ${ALL_TRAINS.length} trips from schedule_data.json`);
+
+    console.log(`Loaded ${ALL_TRAINS.length} trips from ${scheduleFile}`);
+    console.log(`${today.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} - ${scheduleInfo}`);
+
+    // Show schedule type indicator
+    document.getElementById('clock-date').innerHTML =
+      `${today.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} <span style="color: var(--accent2); font-size: 10px;">${scheduleInfo}</span>`;
+
   } catch (err) {
-    console.error('❌ Failed to load schedule:', err);
-    // Fallback to empty array (no trains will show)
+    console.error('Failed to load schedule:', err);
+    // Fallback: try to load any available schedule
+    try {
+      const response = await fetch('./schedule_data.json');
+      if (response.ok) {
+        ALL_TRAINS = await response.json();
+        console.log(`Loaded ${ALL_TRAINS.length} trips from fallback schedule_data.json`);
+        return;
+      }
+    } catch (e) {
+      console.error('Fallback also failed');
+    }
     ALL_TRAINS = [];
   }
 }
