@@ -922,20 +922,26 @@ Object.entries(STATIONS).forEach(([id, st]) => {
 const trainMarkers = {};
 let selectedTrain = null;
 
+function getTrainMarkerKey(train) {
+  // Use id + route to create unique key since some trips share the same id
+  return train.id + '-' + train.route;
+}
+
 function getOrCreateMarker(train) {
-  if (trainMarkers[train.id]) return trainMarkers[train.id];
+  const markerKey = getTrainMarkerKey(train);
+  if (trainMarkers[markerKey]) return trainMarkers[markerKey];
 
   const icon = L.divIcon({
     className: '',
-    html: `<div class="train-marker" id="tm-${train.id}" style="background:${train.color};color:#000;border-color:${train.color}80;box-shadow:0 0 10px ${train.color}"></div>`,
+    html: `<div class="train-marker" id="tm-${markerKey}" style="background:${train.color};color:#000;border-color:${train.color}80;box-shadow:0 0 10px ${train.color}"></div>`,
     iconSize: [16, 16],
     iconAnchor: [8, 8],
   });
 
   const marker = L.marker([0, 0], { icon, zIndexOffset: 1000 }).addTo(map);
   marker.bindPopup('', { maxWidth: 220 });
-  marker.on('click', () => selectTrain(train.id));
-  trainMarkers[train.id] = marker;
+  marker.on('click', () => selectTrain(markerKey));
+  trainMarkers[markerKey] = marker;
   return marker;
 }
 
@@ -982,14 +988,15 @@ function renderTrainList() {
   }
 
   activeTrains.forEach(({ train, state }) => {
-    const isSelected = selectedTrain === train.id;
+    const markerKey = getTrainMarkerKey(train);
+    const isSelected = selectedTrain === markerKey;
     const lineClass = `badge-${train.line}`;
     const lineLabel = train.line === 'cibubur' ? 'CIBUBUR' : train.line === 'bekasi' ? 'BEKASI' : 'MAIN';
     const pct = Math.round(state.progress * 100);
     const nextName = state.nextStation ? STATIONS[state.nextStation]?.name : '-';
-    
+
     html += `
-      <div class="train-item ${isSelected ? 'selected' : ''}" onclick="selectTrain('${train.id}')">
+      <div class="train-item ${isSelected ? 'selected' : ''}" onclick="selectTrain('${markerKey}')">
         <div class="train-header">
           <span class="train-badge ${lineClass}">${lineLabel}</span>
           <span class="train-name">${train.id}</span>
@@ -1129,13 +1136,14 @@ function update() {
   const activeIds = new Set();
 
   ALL_TRAINS.forEach(train => {
+    const markerKey = getTrainMarkerKey(train);
     const state = getTrainState(train, t);
     if (!state) {
-      if (trainMarkers[train.id]) removeMarker(train.id);
+      if (trainMarkers[markerKey]) removeMarker(markerKey);
       return;
     }
 
-    activeIds.add(train.id);
+    activeIds.add(markerKey);
     const marker = getOrCreateMarker(train);
     marker.setLatLng([state.lat, state.lon]);
 
