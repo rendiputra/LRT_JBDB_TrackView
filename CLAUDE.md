@@ -51,7 +51,7 @@ The LRT Jabodebek consists of two lines sharing the main section between Dukuh A
 1. `export.geojson` — Raw OpenStreetMap track data (dual tracks)
 2. `build_routes.py` — Chains OSM ways into route segments with station snapping
 3. `rute_lrt_siap_pakai.geojson` — Processed per-segment LineString features with route metadata
-4. `raw_b.txt`, `raw_c.txt` — Raw schedule data (Run ID, direction, times per station)
+4. `raw_b.txt`, `raw_c.txt`, `raw_d.txt`, `raw_e.txt` — Raw schedule data (Run ID, direction, times per station)
 5. `build_schedule.py` — Parses raw schedules into `schedule_data.json`
 6. `index.html` — Loads GeoJSON routes, generates full-day schedule simulation
 
