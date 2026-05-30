@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LRT Jabodebek — Live Tracker</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+
+  <!-- Tailwind CSS CDN with custom config -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['Space Mono', 'monospace'],
+          },
+          colors: {
+            cibubur: '#00c8ff',
+            bekasi: '#ff9900',
+            main: '#a855f7',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --panel: #ffffff;
+      --panel2: #f1f5f9;
+      --border: #e2e8f0;
+      --text: #1e293b;
+      --text-dim: #64748b;
+      --text-bright: #0f172a;
+      --accent: #0891b2;
+      --accent2: #0891b2;
+      --line-cibubur: #00c8ff;
+      --line-bekasi: #ff9900;
+      --line-main: #a855f7;
+      --glow: rgba(8,145,178,0.15);
+    }
+
+    html.dark {
+      --bg: #0a0e17;
+      --panel: #111722;
+      --panel2: #161d2c;
+      --border: #1e2d45;
+      --text: #e2e8f0;
+      --text-dim: #64748b;
+      --text-bright: #f8fafc;
+      --accent: #00d4aa;
+      --accent2: #ff6b35;
+      --glow: rgba(0,212,170,0.15);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transition: background-color 0.2s, color 0.2s;
+    }
+
+    .header-bg { background: var(--panel); border-bottom: 1px solid var(--border); }
+    .logo-icon { background: linear-gradient(135deg, var(--accent), #0099cc); }
+    .logo-text { color: var(--text-bright); }
+    .logo-sub { color: var(--accent); }
+    .header-clock { color: var(--accent); }
+    .clock-date { color: var(--text-dim); }
+    .clock-speed { color: var(--accent2); }
+    .stat-item { border-left: 1px solid var(--border); }
+    .stat-num { color: var(--text-bright); }
+    .speed-control { background: var(--panel2); border: 1px solid var(--border); }
+    .speed-btn { background: var(--border); color: var(--text); }
+    .speed-btn:hover { background: var(--accent); color: var(--bg); }
+    .speed-val { color: var(--accent); }
+    .sidebar { background: var(--panel); border-right: 1px solid var(--border); }
+    .sidebar-tabs { border-bottom: 1px solid var(--border); }
+
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .train-item { border-bottom: 1px solid var(--border); }
+    .train-item:hover { background: var(--panel2); }
+    .train-item.selected { background: var(--glow); border-left: 3px solid var(--accent); }
+    .train-name { color: var(--text-bright); }
+    .train-progress-bar { background: var(--border); }
+    .train-eta { color: var(--text-dim); }
+    .train-eta span { color: var(--accent); }
+    .station-item { border-bottom: 1px solid var(--border); }
+    .station-item:hover { background: var(--panel2); }
+    .station-name { color: var(--text-bright); }
+    .station-trains { color: var(--accent); }
+    .sched-row { border-bottom: 1px solid var(--border); }
+    .sched-time { color: var(--accent); }
+
+    .leaflet-container { background: var(--bg); }
+    html.dark .leaflet-tile-pane { filter: brightness(0.6) saturate(0.3) hue-rotate(200deg); }
+    html:not(.dark) .leaflet-tile-pane { filter: none; }
+    .leaflet-control-zoom { display: none; }
+    .leaflet-popup-content-wrapper { background: var(--panel) !important; border: 1px solid var(--border) !important; border-radius: 8px !important; box-shadow: 0 4px 20px rgba(0,0,0,0.5) !important; }
+    .leaflet-popup-tip { background: var(--panel) !important; }
+    .leaflet-popup-content { margin: 12px 16px !important; }
+    .popup-title { font-weight: 600; font-size: 13px; color: var(--text-bright); margin-bottom: 4px; }
+    .popup-sub { font-size: 11px; color: var(--text-dim); }
+    .popup-val { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--accent); }
+
+    .train-marker { width: 16px; height: 16px; border-radius: 50%; border: 2px solid white; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: bold; box-shadow: 0 0 8px currentColor, 0 2px 8px rgba(0,0,0,0.5); cursor: pointer; position: relative; }
+    .train-marker::after { content: ''; position: absolute; inset: -4px; border-radius: 50%; background: currentColor; opacity: 0.2; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%, 100% { transform: scale(1); opacity: 0.2; } 50% { transform: scale(1.5); opacity: 0; } }
+    .station-marker { width: 10px; height: 10px; border-radius: 50%; border: 2px solid; background: transparent; }
+
+    .legend-card { background: rgba(255,255,255,0.9); backdrop-filter: blur(8px); }
+    html.dark .legend-card { background: rgba(17,23,34,0.9); }
+    .mobile-panel { background: var(--panel); }
+    .mobile-nav { background: var(--panel); border-top: 1px solid var(--border); }
+    .mobile-nav-btn { color: var(--text-dim); border-top: 2px solid transparent; transition: all 0.2s; }
+    .mobile-nav-btn.active { color: var(--accent); border-top-color: var(--accent); }
+    .mobile-tab-content { display: none; }
+    .mobile-tab-content.active { display: block; }
+    .tab-content { display: none; flex-direction: column; }
+    .tab-content.active { display: flex; flex-direction: column; }
+    .info-bar { background: var(--panel); border-top: 1px solid var(--border); }
+    .info-right { color: var(--text-dim); }
+    .legend-line { width: 24px; height: 3px; border-radius: 2px; }
+    .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .live-dot { width: 8px; height: 8px; background: #22c55e; border-radius: 50%; animation: live-pulse 2s infinite; }
+    @keyframes live-pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.8); } }
+    .badge-cibubur { background: rgba(0,200,255,0.15); color: var(--line-cibubur); border: 1px solid rgba(0,200,255,0.3); }
+    .badge-bekasi { background: rgba(255,153,0,0.15); color: var(--line-bekasi); border: 1px solid rgba(255,153,0,0.3); }
+    .badge-main { background: rgba(168,85,247,0.15); color: var(--line-main); border: 1px solid rgba(168,85,247,0.3); }
+    .train-badge { font-family: 'Space Mono', monospace; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 3px; letter-spacing: 0.05em; }
+    .train-progress-fill { height: 100%; border-radius: 2px; transition: width 0.5s ease; }
+  </style>
+</head>
+<body>
+<!-- HEADER -->
+<header class="h-14 header-bg flex items-center px-4 gap-4 shrink-0 z-50 sticky top-0">
+  <!-- Logo -->
+  <div class="flex items-center gap-3">
+    <div class="logo-icon w-9 h-9 rounded-lg flex items-center justify-center text-lg">🚈</div>
+    <div>
+      <div class="logo-text font-mono text-sm font-bold tracking-wide">LRT JABODEBEK</div>
+      <div class="logo-sub font-mono text-[9px] tracking-widest flex items-center gap-1">
+        <span class="live-dot"></span>
+        LIVE
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="hidden md:flex items-center gap-6 ml-4">
+    <div class="stat-item pl-6">
+      <div class="stat-num font-mono text-xl font-bold" id="stat-running">0</div>
+      <div class="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider">Kereta Aktif</div>
+    </div>
+    <div class="stat-item pl-6">
+      <div class="stat-num font-mono text-xl font-bold">18</div>
+      <div class="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider">Stasiun</div>
+    </div>
+    <div class="stat-item pl-6">
+      <div class="stat-num font-mono text-xl font-bold">3</div>
+      <div class="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider">Jalur</div>
+    </div>
+  </div>
+
+  <!-- Speed Control -->
+  <div class="speed-control rounded-lg px-3 py-1.5 flex items-center gap-2 ml-auto">
+    <button class="speed-btn w-7 h-7 rounded flex items-center justify-center font-mono text-sm" onclick="changeSpeed(-1)">−</button>
+    <span class="speed-val font-mono text-sm min-w-[3rem] text-center" id="speed-display">1×</span>
+    <button class="speed-btn w-7 h-7 rounded flex items-center justify-center font-mono text-sm" onclick="changeSpeed(1)">+</button>
+  </div>
+
+  <!-- Clock -->
+  <div class="hidden sm:block text-right">
+    <div class="clock-time font-mono text-xl font-bold" id="clock-time">--:--:--</div>
+    <div class="clock-date text-[10px]" id="clock-date">Memuat...</div>
+    <div class="clock-speed font-mono text-[10px]" id="clock-speedlabel"></div>
+  </div>
+
+  <!-- Theme Toggle -->
+  <button id="theme-toggle" class="w-9 h-9 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-cyan-500 dark:hover:border-cyan-400 flex items-center justify-center transition-colors">
+    <svg id="icon-sun" class="w-4 h-4 text-gray-500 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+    </svg>
+    <svg id="icon-moon" class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+    </svg>
+  </button>
+</header>
+
+<!-- MAIN CONTENT -->
+<div class="flex flex-1 overflow-hidden">
+  <!-- Desktop Sidebar -->
+  <aside class="sidebar hidden lg:flex w-[340px] flex-col overflow-hidden">
+    <!-- Tab Pills -->
+    <div class="sidebar-tabs p-2 flex gap-1">
+      <button class="tab-btn active flex-1 py-2 px-4 rounded-full text-sm font-medium transition-all bg-cyan-600 text-white" data-tab="trains">Kereta</button>
+      <button class="tab-btn flex-1 py-2 px-4 rounded-full text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-all" data-tab="stations">Stasiun</button>
+      <button class="tab-btn flex-1 py-2 px-4 rounded-full text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-all" data-tab="schedule">Jadwal</button>
+    </div>
+    <!-- Tab Content -->
+    <div class="flex-1 overflow-y-auto">
+      <div class="tab-content active" id="tab-trains"></div>
+      <div class="tab-content" id="tab-stations"></div>
+      <div class="tab-content" id="tab-schedule">
+        <div class="schedule-section" id="schedule-content">
+          <div class="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-4">Pilih stasiun untuk melihat jadwal</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Map Area -->
+  <main class="flex-1 relative">
+    <div id="map" class="w-full h-full"></div>
+    <!-- Legend -->
+    <div class="legend-card absolute bottom-4 left-4 rounded-lg p-3 text-xs z-[1000]">
+      <div class="flex items-center gap-2 mb-1.5"><div class="legend-line" style="background:#00c8ff"></div> <span class="text-gray-700 dark:text-gray-300">Cibubur Line</span></div>
+      <div class="flex items-center gap-2 mb-1.5"><div class="legend-line" style="background:#ff9900"></div> <span class="text-gray-700 dark:text-gray-300">Bekasi Line</span></div>
+      <div class="flex items-center gap-2 mb-2"><div class="legend-line" style="background:#a855f7"></div> <span class="text-gray-700 dark:text-gray-300">Main Line</span></div>
+      <div class="flex items-center gap-2"><div class="legend-dot" style="background:#00c8ff"></div> <span class="text-gray-700 dark:text-gray-300">Posisi kereta</span></div>
+    </div>
+  </main>
+
+  <!-- Mobile Panel -->
+  <div class="lg:hidden flex flex-col flex-1 overflow-hidden mobile-panel">
+    <!-- Mobile Tabs -->
+    <div class="p-2 flex gap-1 border-b border-gray-200 dark:border-gray-800">
+      <button class="mobile-tab-btn flex-1 py-2 px-4 rounded-full text-sm font-medium transition-all bg-cyan-600 text-white" data-tab="trains">Kereta</button>
+      <button class="mobile-tab-btn flex-1 py-2 px-4 rounded-full text-sm font-medium text-gray-500 transition-all" data-tab="stations">Stasiun</button>
+      <button class="mobile-tab-btn flex-1 py-2 px-4 rounded-full text-sm font-medium text-gray-500 transition-all" data-tab="schedule">Jadwal</button>
+    </div>
+    <!-- Mobile Tab Content -->
+    <div class="flex-1 overflow-y-auto pb-16">
+      <div class="mobile-tab-content active" id="mobile-tab-trains"></div>
+      <div class="mobile-tab-content" id="mobile-tab-stations"></div>
+      <div class="mobile-tab-content" id="mobile-tab-schedule">
+        <div class="schedule-section" id="mobile-schedule-content">
+          <div class="text-[10px] uppercase tracking-wider text-gray-500 mb-4">Pilih stasiun untuk melihat jadwal</div>
+        </div>
+      </div>
+    </div>
+    <!-- Mobile Bottom Nav -->
+    <nav class="mobile-nav fixed bottom-0 left-0 right-0 flex z-50 lg:hidden" style="padding-bottom: env(safe-area-inset-bottom);">
+      <button class="mobile-nav-btn flex-1 py-3 text-center" data-tab="trains">
+        <div class="text-base mb-0.5">🚈</div>
+        <span class="text-[10px] uppercase tracking-wide">Kereta</span>
+      </button>
+      <button class="mobile-nav-btn flex-1 py-3 text-center" data-tab="stations">
+        <div class="text-base mb-0.5">📍</div>
+        <span class="text-[10px] uppercase tracking-wide">Stasiun</span>
+      </button>
+      <button class="mobile-nav-btn flex-1 py-3 text-center" data-tab="schedule">
+        <div class="text-base mb-0.5">📋</div>
+        <span class="text-[10px] uppercase tracking-wide">Jadwal</span>
+      </button>
+    </nav>
+  </div>
+</div>
+
+<!-- Info Bar (desktop only) -->
+<div class="info-bar hidden lg:flex items-center px-4 py-2 text-xs gap-6">
+  <div class="flex items-center gap-4">
+    <div class="flex items-center gap-2"><div class="legend-line" style="background:var(--line-cibubur)"></div> <span>Harjamukti ↔ Cawang</span></div>
+    <div class="flex items-center gap-2"><div class="legend-line" style="background:var(--line-bekasi)"></div> <span>Jatimulya ↔ Cawang</span></div>
+    <div class="flex items-center gap-2"><div class="legend-line" style="background:var(--line-main)"></div> <span>Dukuh Atas ↔ Cawang</span></div>
+  </div>
+  <div class="info-right font-mono ml-auto" id="update-time">Memperbarui...</div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// THEME SYSTEM
+// ═══════════════════════════════════════════════════════════
+const DARK_TILE = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+const LIGHT_TILE = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+let tileLayer = null;
+
+function initTheme() {
+  const stored = localStorage.getItem('lrt-theme');
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const isDark = stored ? stored === 'dark' : prefersDark;
+  document.documentElement.classList.toggle('dark', isDark);
+  document.getElementById('icon-sun').classList.toggle('hidden', !isDark);
+  document.getElementById('icon-moon').classList.toggle('hidden', isDark);
+  updateCSSVars(isDark);
+}
+
+function applyTheme(isDark) {
+  document.documentElement.classList.toggle('dark', isDark);
+  localStorage.setItem('lrt-theme', isDark ? 'dark' : 'light');
+  if (tileLayer) tileLayer.setUrl(isDark ? DARK_TILE : LIGHT_TILE);
+  document.getElementById('icon-sun').classList.toggle('hidden', !isDark);
+  document.getElementById('icon-moon').classList.toggle('hidden', isDark);
+  updateCSSVars(isDark);
+}
+
+function updateCSSVars(isDark) {
+  const root = document.documentElement;
+  if (isDark) {
+    root.style.setProperty('--bg', '#0a0e17');
+    root.style.setProperty('--panel', '#111722');
+    root.style.setProperty('--panel2', '#161d2c');
+    root.style.setProperty('--border', '#1e2d45');
+    root.style.setProperty('--text', '#e2e8f0');
+    root.style.setProperty('--text-dim', '#64748b');
+    root.style.setProperty('--text-bright', '#f8fafc');
+    root.style.setProperty('--accent', '#00d4aa');
+    root.style.setProperty('--accent2', '#ff6b35');
+  } else {
+    root.style.setProperty('--bg', '#f8fafc');
+    root.style.setProperty('--panel', '#ffffff');
+    root.style.setProperty('--panel2', '#f1f5f9');
+    root.style.setProperty('--border', '#e2e8f0');
+    root.style.setProperty('--text', '#1e293b');
+    root.style.setProperty('--text-dim', '#64748b');
+    root.style.setProperty('--text-bright', '#0f172a');
+    root.style.setProperty('--accent', '#0891b2');
+    root.style.setProperty('--accent2', '#0891b2');
+  }
+}
+
+initTheme();
+
+document.getElementById('theme-toggle').addEventListener('click', () => {
+  const isDark = document.documentElement.classList.contains('dark');
+  applyTheme(!isDark);
+});
+
+// ═══════════════════════════════════════════════════════════
+// DATA: STATIONS
+// ═══════════════════════════════════════════════════════════
+const STATIONS = {
+  dukuh_atas:      { name:"Dukuh Atas",        lat:-6.2048, lon:106.8255, lines:["main"] },
+  setiabudi:       { name:"Setiabudi",         lat:-6.2093, lon:106.8302, lines:["main"] },
+  rasuna_said:     { name:"Rasuna Said",       lat:-6.2216, lon:106.8322, lines:["main"] },
+  kuningan:        { name:"Kuningan",          lat:-6.2288, lon:106.8332, lines:["main"] },
+  pancoran:        { name:"Pancoran",          lat:-6.2421, lon:106.8385, lines:["main"] },
+  cikoko:          { name:"Cikoko",            lat:-6.2435, lon:106.8571, lines:["main"] },
+  ciliwung:        { name:"Ciliwung",          lat:-6.2434, lon:106.8640, lines:["main"] },
+  cawang:          { name:"Cawang",            lat:-6.2459, lon:106.8712, lines:["main","cibubur","bekasi"] },
+  taman_mini:      { name:"TMII",              lat:-6.2929, lon:106.8806, lines:["cibubur"] },
+  kampung_rambutan:{ name:"Kampung Rambutan",  lat:-6.3096, lon:106.8844, lines:["cibubur"] },
+  ciracas:         { name:"Ciracas",           lat:-6.3238, lon:106.8866, lines:["cibubur"] },
+  harjamukti:      { name:"Harjamukti",        lat:-6.3739, lon:106.8957, lines:["cibubur"] },
+  halim:           { name:"Halim",             lat:-6.2459, lon:106.8873, lines:["bekasi"] },
+  jatibening:      { name:"Jatibening Baru",   lat:-6.2577, lon:106.9279, lines:["bekasi"] },
+  cikunir1:        { name:"Cikunir 1",         lat:-6.2566, lon:106.9519, lines:["bekasi"] },
+  cikunir2:        { name:"Cikunir 2",         lat:-6.2546, lon:106.9632, lines:["bekasi"] },
+  bekasi_barat:    { name:"Bekasi Barat",      lat:-6.2529, lon:106.99040, lines:["bekasi"] },
+  jatimulya:       { name:"Jatimulya",         lat:-6.2641, lon:107.0217, lines:["bekasi"] },
+};
+
+const ROUTES = {
+  cibubur_to_dukuh: ["harjamukti","ciracas","kampung_rambutan","taman_mini","cawang","ciliwung","cikoko","pancoran","kuningan","rasuna_said","setiabudi","dukuh_atas"],
+  dukuh_to_cibubur: ["dukuh_atas","setiabudi","rasuna_said","kuningan","pancoran","cikoko","ciliwung","cawang","taman_mini","kampung_rambutan","ciracas","harjamukti"],
+  bekasi_to_dukuh: ["jatimulya","bekasi_barat","cikunir2","cikunir1","jatibening","halim","cawang","ciliwung","cikoko","pancoran","kuningan","rasuna_said","setiabudi","dukuh_atas"],
+  dukuh_to_bekasi: ["dukuh_atas","setiabudi","rasuna_said","kuningan","pancoran","cikoko","ciliwung","cawang","halim","jatibening","cikunir1","cikunir2","bekasi_barat","jatimulya"],
+};
+
+const TRAVEL_TIMES = {
+  dukuh_atas_setiabudi: 3, setiabudi_rasuna_said: 3, rasuna_said_kuningan: 3,
+  kuningan_pancoran: 5, pancoran_cikoko: 4, cikoko_ciliwung: 3, ciliwung_cawang: 3,
+  cawang_taman_mini: 7, taman_mini_kampung_rambutan: 6, kampung_rambutan_ciracas: 7, ciracas_harjamukti: 5,
+  cawang_halim: 4, halim_jatibening: 8, jatibening_cikunir1: 5,
+  cikunir1_cikunir2: 4, cikunir2_bekasi_barat: 9, bekasi_barat_jatimulya: 8,
+};
+
+function getTravelTime(a, b) {
+  const key1 = `${a}_${b}`, key2 = `${b}_${a}`;
+  return (TRAVEL_TIMES[key1] || TRAVEL_TIMES[key2] || 4) * 60;
+}
+
+const ROUTE_SEGMENTS = {};
+
+function haversineDist(lon1, lat1, lon2, lat2) {
+  const R = 6371000;
+  const p1 = lat1 * Math.PI/180, p2 = lat2 * Math.PI/180;
+  const dp = (lat2-lat1)*Math.PI/180, dl = (lon2-lon1)*Math.PI/180;
+  const a = Math.sin(dp/2)**2 + Math.cos(p1)*Math.cos(p2)*Math.sin(dl/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function buildCumulativeDistances(coords) {
+  const cumDist = [0];
+  for (let i = 1; i < coords.length; i++) {
+    const d = haversineDist(coords[i-1][0], coords[i-1][1], coords[i][0], coords[i][1]);
+    cumDist.push(cumDist[i-1] + d);
+  }
+  return cumDist;
+}
+
+function interpolateAlongTrack(segmentData, frac) {
+  if (!segmentData || !segmentData.coords || segmentData.coords.length < 2) return null;
+  const { coords, cumDist } = segmentData;
+  const totalLen = cumDist[cumDist.length - 1];
+  const targetDist = frac * totalLen;
+  for (let i = 1; i < cumDist.length; i++) {
+    if (cumDist[i] >= targetDist) {
+      const segLen = cumDist[i] - cumDist[i-1];
+      const t = segLen > 0 ? (targetDist - cumDist[i-1]) / segLen : 0;
+      const lon = coords[i-1][0] + (coords[i][0] - coords[i-1][0]) * t;
+      const lat = coords[i-1][1] + (coords[i][1] - coords[i-1][1]) * t;
+      return { lat, lon };
+    }
+  }
+  const last = coords[coords.length - 1];
+  return { lat: last[1], lon: last[0] };
+}
+
+function getSegmentKey(fromStation, toStation) {
+  return `${fromStation}_TO_${toStation}`;
+}
+
+function getRouteSegment(routeName, fromStation, toStation) {
+  if (!ROUTE_SEGMENTS[routeName]) return null;
+  return ROUTE_SEGMENTS[routeName][getSegmentKey(fromStation, toStation)] || null;
+}
+
+async function loadRouteSegments() {
+  try {
+    const response = await fetch('./rute_lrt_siap_pakai.geojson');
+    if (!response.ok) throw new Error('Failed to load route segments');
+    const geojson = await response.json();
+    geojson.features.forEach(feat => {
+      const { route, from: fromSt, to: toSt } = feat.properties;
+      const coords = feat.geometry.coordinates;
+      const cumDist = buildCumulativeDistances(coords);
+      if (!ROUTE_SEGMENTS[route]) ROUTE_SEGMENTS[route] = {};
+      ROUTE_SEGMENTS[route][getSegmentKey(fromSt, toSt)] = { coords, cumDist };
+    });
+    console.log('Route segments loaded successfully');
+  } catch (error) {
+    console.error('Error loading route segments:', error);
+  }
+}
+
+const DWELL_TIME = 45;
+
+function secondsToTime(s) {
+  s = ((s % 86400) + 86400) % 86400;
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = Math.floor(s % 60);
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+}
+
+let ALL_TRAINS = [];
+
+async function loadScheduleData() {
+  try {
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+    const dayOfWeek = now.getDay();
+
+    // Load holidays data first
+    let holidays = [];
+    try {
+      const holidayRes = await fetch('./hari_libur/hari_libur2026.json');
+      if (holidayRes.ok) {
+        const holidayData = await holidayRes.json();
+        holidays = holidayData.data || [];
+      }
+    } catch (err) { console.warn('Gagal memuat data hari libur:', err); }
+
+    // Check if today is a holiday
+    const isHoliday = holidays.some(h =>
+      h.date === todayStr && (h.is_holiday || h.is_joint_holiday)
+    );
+
+    // Weekend: Saturday (6) or Sunday (0)
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+    const useWeekendSchedule = isWeekend || isHoliday;
+
+    const scheduleUrl = useWeekendSchedule ? './schedule_data.json' : './schedule_data_weekdays.json';
+    const response = await fetch(scheduleUrl);
+    if (!response.ok) throw new Error('Failed to load schedule');
+
+    // Use direct assignment like original index.html
+    ALL_TRAINS = await response.json();
+    console.log(`Loaded ${ALL_TRAINS.length} trips from ${scheduleUrl}`);
+
+  } catch (error) {
+    console.error('Error loading schedule:', error);
+    // Fallback: try to load any available schedule
+    try {
+      const response = await fetch('./schedule_data.json');
+      if (response.ok) {
+        ALL_TRAINS = await response.json();
+        console.log(`Loaded ${ALL_TRAINS.length} trips from fallback`);
+        return;
+      }
+    } catch (e) { console.error('Fallback also failed'); }
+    ALL_TRAINS = [];
+  }
+}
+
+let simTime = 0;
+let simSpeed = 1;
+
+function getRealSecondsSinceMidnight() {
+  const now = new Date();
+  return now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+}
+
+function initSimTime() {
+  simTime = getRealSecondsSinceMidnight();
+}
+
+function updateSimTime() {
+  simTime += simSpeed;
+  if (simTime > 86400) simTime -= 86400;
+}
+
+function updateSimTimeWithDelta(deltaSec) {
+  simTime += deltaSec * simSpeed;
+  if (simTime > 86400) simTime -= 86400;
+}
+
+function changeSpeed(dir) {
+  const speeds = [0.5, 1, 2, 5, 10, 30, 60, 120];
+  const idx = speeds.indexOf(simSpeed);
+  const newIdx = Math.max(0, Math.min(speeds.length - 1, idx + dir));
+  simSpeed = speeds[newIdx];
+  document.getElementById('speed-display').textContent = simSpeed + '×';
+}
+
+function getTrainState(train, t) {
+  const timings = train.timings;
+
+  // Before departure
+  if (t < timings[0].arriveAt) return null;
+  // After arrival at last station + dwell
+  const last = timings[timings.length - 1];
+  if (t > last.departAt) return null;
+
+  for (let i = 0; i < timings.length; i++) {
+    const curr = timings[i];
+    // At station (dwell)
+    if (t >= curr.arriveAt && t <= curr.departAt) {
+      return {
+        phase: 'dwell',
+        stationId: curr.stationId,
+        lat: STATIONS[curr.stationId].lat,
+        lon: STATIONS[curr.stationId].lon,
+        stationIndex: i,
+        totalStations: timings.length,
+        nextStation: i < timings.length - 1 ? timings[i+1].stationId : null,
+        progress: i / (timings.length - 1),
+      };
+    }
+    // Between stations
+    if (i < timings.length - 1) {
+      const next = timings[i+1];
+      if (t > curr.departAt && t < next.arriveAt) {
+        const travelDuration = next.arriveAt - curr.departAt;
+        const elapsed = t - curr.departAt;
+        const frac = Math.min(1, elapsed / travelDuration);
+        // Smooth easing
+        const ease = frac < 0.5 ? 2*frac*frac : -1+(4-2*frac)*frac;
+
+        // Try to interpolate along actual track geometry
+        const segment = getRouteSegment(train.route, curr.stationId, next.stationId);
+        let lat, lon;
+
+        if (segment) {
+          const pos = interpolateAlongTrack(segment, ease);
+          lat = pos.lat;
+          lon = pos.lon;
+        } else {
+          // Fallback: straight line interpolation
+          const fromSt = STATIONS[curr.stationId];
+          const toSt = STATIONS[next.stationId];
+          lat = fromSt.lat + (toSt.lat - fromSt.lat) * ease;
+          lon = fromSt.lon + (toSt.lon - fromSt.lon) * ease;
+        }
+
+        return {
+          phase: 'moving',
+          fromStation: curr.stationId,
+          toStation: next.stationId,
+          lat, lon,
+          frac: ease,
+          stationIndex: i,
+          totalStations: timings.length,
+          nextStation: next.stationId,
+          eta: Math.ceil((next.arriveAt - t) / 60),
+          progress: (i + ease) / (timings.length - 1),
+        };
+      }
+    }
+  }
+  return null;
+}
+
+// ═══════════════════════════════════════════════════════════
+// MAP SETUP
+// ═══════════════════════════════════════════════════════════
+const map = L.map('map', {
+  center: [-6.2600, 106.9200],
+  zoom: 12,
+  zoomControl: false,
+  attributionControl: false,
+});
+
+const initialTile = document.documentElement.classList.contains('dark') ? DARK_TILE : LIGHT_TILE;
+tileLayer = L.tileLayer(initialTile, {
+  attribution: '©OpenStreetMap ©CARTO',
+  subdomains: 'abcd',
+  maxZoom: 19,
+}).addTo(map);
+
+L.control.zoom({ position: 'bottomright' }).addTo(map);
+L.control.attribution({ position: 'bottomleft', prefix: 'Data: OpenStreetMap • GAPEKA KAI' }).addTo(map);
+
+// Draw track from GeoJSON
+fetch('./export.geojson')
+  .then(response => {
+    if (!response.ok) throw new Error("Gagal memuat file geojson");
+    return response.json();
+  })
+  .then(geojsonData => {
+    L.geoJSON(geojsonData, {
+      style: (feature) => {
+        const service = feature.properties && feature.properties.service;
+        return {
+          color: service === 'siding' ? '#1e2d45' : '#2a4a7a',
+          weight: service === 'siding' ? 1 : 3,
+          opacity: service === 'siding' ? 0.5 : 0.8,
+        };
+      }
+    }).addTo(map);
+  })
+  .catch(error => {
+    console.error('Error memuat GeoJSON:', error);
+  });
+
+// Draw stylized route lines
+const LINE_COLORS = { main: '#a855f7', cibubur: '#00c8ff', bekasi: '#ff9900' };
+const routePolylines = { main: null, cibubur: null, bekasi: null };
+
+function drawRouteLines() {
+  const mainStations = ['dukuh_atas','setiabudi','rasuna_said','kuningan','pancoran','cikoko','ciliwung','cawang'];
+  const cibuburStations = ['cawang','taman_mini','kampung_rambutan','ciracas','harjamukti'];
+  const bekasiStations = ['cawang','halim','jatibening','cikunir1','cikunir2','bekasi_barat','jatimulya'];
+
+  function collectCoords(stationList, routeName) {
+    const allCoords = [];
+    for (let i = 0; i < stationList.length - 1; i++) {
+      const seg = getRouteSegment(routeName, stationList[i], stationList[i+1]);
+      if (seg) {
+        const leafletCoords = seg.coords.map(c => [c[1], c[0]]);
+        if (allCoords.length > 0) leafletCoords.shift();
+        allCoords.push(...leafletCoords);
+      }
+    }
+    return allCoords;
+  }
+
+  const mainCoords = collectCoords(mainStations, 'dukuh_to_cibubur');
+  if (mainCoords.length > 0) {
+    routePolylines.main = L.polyline(mainCoords, { color: '#a855f7', weight: 4, opacity: 0.7 }).addTo(map);
+  }
+
+  const cibuburCoords = collectCoords(cibuburStations, 'dukuh_to_cibubur');
+  if (cibuburCoords.length > 0) {
+    routePolylines.cibubur = L.polyline(cibuburCoords, { color: '#00c8ff', weight: 4, opacity: 0.7 }).addTo(map);
+  }
+
+  const bekasiCoords = collectCoords(bekasiStations, 'dukuh_to_bekasi');
+  if (bekasiCoords.length > 0) {
+    routePolylines.bekasi = L.polyline(bekasiCoords, { color: '#ff9900', weight: 4, opacity: 0.7 }).addTo(map);
+  }
+
+  if (!mainCoords.length) {
+    const makeLineCoords = (stIds) => stIds.map(id => [STATIONS[id].lat, STATIONS[id].lon]);
+    L.polyline(makeLineCoords(ROUTES.cibubur_to_dukuh.slice(4)), { color: '#a855f7', weight: 4, opacity: 0.7 }).addTo(map);
+    L.polyline(makeLineCoords(ROUTES.cibubur_to_dukuh.slice(0, 5)), { color: '#00c8ff', weight: 4, opacity: 0.7 }).addTo(map);
+    L.polyline(makeLineCoords(ROUTES.bekasi_to_dukuh.slice(0, 7)), { color: '#ff9900', weight: 4, opacity: 0.7 }).addTo(map);
+  }
+}
+
+// Station markers
+const stationMarkers = {};
+Object.entries(STATIONS).forEach(([id, st]) => {
+  const lineColors = st.lines.map(l => LINE_COLORS[l] || '#fff');
+  const color = lineColors[0];
+
+  const icon = L.divIcon({
+    className: '',
+    html: `<div class="station-marker" style="border-color:${color};${id==='cawang'?'background:'+color:''}"></div>`,
+    iconSize: [14, 14],
+    iconAnchor: [7, 7],
+  });
+
+  const marker = L.marker([st.lat, st.lon], { icon }).addTo(map);
+  marker.bindPopup(`<div class="popup-title">🚉 ${st.name}</div><div class="popup-sub">Jalur: ${st.lines.join(', ')}</div><div class="popup-sub" id="popup-next-${id}">Menghitung...</div>`, { maxWidth: 200 });
+
+  marker.on('click', () => switchTab('schedule', null, id));
+  stationMarkers[id] = marker;
+});
+
+// ═══════════════════════════════════════════════════════════
+// TRAIN MARKERS
+// ═══════════════════════════════════════════════════════════
+const trainMarkers = {};
+let selectedTrain = null;
+
+function getTrainMarkerKey(train) {
+  return train.id + '-' + train.route;
+}
+
+function getOrCreateMarker(train) {
+  const markerKey = getTrainMarkerKey(train);
+  if (trainMarkers[markerKey]) return trainMarkers[markerKey];
+
+  const icon = L.divIcon({
+    className: '',
+    html: `<div class="train-marker" id="tm-${markerKey}" style="background:${train.color};color:#000;border-color:${train.color}80;box-shadow:0 0 10px ${train.color}"></div>`,
+    iconSize: [16, 16],
+    iconAnchor: [8, 8],
+  });
+
+  const marker = L.marker([0, 0], { icon, zIndexOffset: 1000 }).addTo(map);
+  marker.bindPopup('', { maxWidth: 220 });
+  marker.on('click', () => selectTrain(markerKey));
+  trainMarkers[markerKey] = marker;
+  return marker;
+}
+
+function removeMarker(trainId) {
+  if (trainMarkers[trainId]) {
+    map.removeLayer(trainMarkers[trainId]);
+    delete trainMarkers[trainId];
+  }
+}
+
+function selectTrain(trainId) {
+  selectedTrain = trainId;
+  renderTrainList();
+}
+
+// ═══════════════════════════════════════════════════════════
+// SIDEBAR RENDERING
+// ═══════════════════════════════════════════════════════════
+
+function switchTab(name, btn, scheduleStationId) {
+  // Desktop tabs
+  document.querySelectorAll('.sidebar .tab-btn').forEach(b => b.classList.remove('active', 'bg-cyan-600', 'text-white'));
+  document.querySelectorAll('.sidebar .tab-btn').forEach(b => b.classList.add('text-gray-500'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  if (btn) {
+    btn.classList.add('active', 'bg-cyan-600', 'text-white');
+    btn.classList.remove('text-gray-500');
+  }
+  const content = document.getElementById('tab-' + name);
+  if (content) content.classList.add('active');
+
+  // Mobile tabs
+  document.querySelectorAll('.mobile-tab-btn').forEach(b => b.classList.remove('active', 'bg-cyan-600', 'text-white'));
+  document.querySelectorAll('.mobile-tab-btn').forEach(b => b.classList.add('text-gray-500'));
+  document.querySelectorAll('.mobile-tab-content').forEach(c => c.classList.remove('active'));
+  const mobileBtn = document.querySelector(`.mobile-tab-btn[data-tab="${name}"]`);
+  if (mobileBtn) {
+    mobileBtn.classList.add('active', 'bg-cyan-600', 'text-white');
+    mobileBtn.classList.remove('text-gray-500');
+  }
+  const mobileContent = document.getElementById('mobile-tab-' + name);
+  if (mobileContent) mobileContent.classList.add('active');
+
+  // Mobile nav buttons
+  document.querySelectorAll('.mobile-nav-btn').forEach(b => b.classList.remove('active'));
+  const mobileNavBtn = document.querySelector(`.mobile-nav-btn[data-tab="${name}"]`);
+  if (mobileNavBtn) mobileNavBtn.classList.add('active');
+
+  if (name === 'schedule' && scheduleStationId) {
+    renderScheduleFor(scheduleStationId);
+  }
+}
+
+// Setup tab button click handlers
+document.querySelectorAll('.tab-btn, .mobile-tab-btn, .mobile-nav-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const tab = btn.dataset.tab;
+    if (tab) switchTab(tab, btn);
+  });
+});
+
+function renderTrainList() {
+  const container = document.getElementById('tab-trains');
+  const mobileContainer = document.getElementById('mobile-tab-trains');
+  const t = simTime;
+
+  const activeTrains = ALL_TRAINS
+    .map(train => ({ train, state: getTrainState(train, t) }))
+    .filter(x => x.state !== null);
+
+  document.getElementById('stat-running').textContent = activeTrains.length;
+
+  let html = '';
+  if (activeTrains.length === 0) {
+    html = '<div style="padding:20px;color:var(--text-dim);font-size:12px;text-align:center">Tidak ada kereta aktif saat ini</div>';
+  }
+
+  activeTrains.forEach(({ train, state }) => {
+    const markerKey = getTrainMarkerKey(train);
+    const isSelected = selectedTrain === markerKey;
+    const lineClass = `badge-${train.line}`;
+    const lineLabel = train.line === 'cibubur' ? 'CIBUBUR' : train.line === 'bekasi' ? 'BEKASI' : 'MAIN';
+    const pct = Math.round(state.progress * 100);
+    const nextName = state.nextStation ? STATIONS[state.nextStation]?.name : '-';
+
+    html += `
+      <div class="train-item ${isSelected ? 'selected' : ''}" onclick="selectTrain('${markerKey}')">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="train-badge ${lineClass}">${lineLabel}</span>
+          <span class="train-name text-sm font-semibold">${train.id}</span>
+        </div>
+        <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">${train.origin} ${train.direction} ${train.dest}</div>
+        <div class="train-progress-bar h-1 rounded overflow-hidden mb-1">
+          <div class="train-progress-fill" style="width:${pct}%;background:${train.color}"></div>
+        </div>
+        <div class="train-eta text-[10px] flex justify-between">
+          <span>${state.phase === 'dwell' ? '🟢 Di stasiun '+STATIONS[state.stationId]?.name : '🚆 Menuju '+nextName}</span>
+          ${state.eta ? `<span>${state.eta} mnt</span>` : '<span>Di stasiun</span>'}
+        </div>
+      </div>`;
+  });
+
+  container.innerHTML = html;
+  if (mobileContainer) mobileContainer.innerHTML = html;
+}
+
+function renderStationList() {
+  const container = document.getElementById('tab-stations');
+  const mobileContainer = document.getElementById('mobile-tab-stations');
+  const t = simTime;
+  let html = '';
+
+  Object.entries(STATIONS).forEach(([id, st]) => {
+    let nextArrival = null;
+    let minWait = Infinity;
+
+    ALL_TRAINS.forEach(train => {
+      const state = getTrainState(train, t);
+      if (!state) return;
+      const timings = train.timings;
+      for (let i = 0; i < timings.length; i++) {
+        if (timings[i].stationId === id && timings[i].arriveAt >= t - 60) {
+          const wait = timings[i].arriveAt - t;
+          if (wait >= 0 && wait < minWait) {
+            minWait = wait;
+            nextArrival = { train, wait };
+          }
+          break;
+        }
+      }
+    });
+
+    const color = LINE_COLORS[st.lines[0]] || '#fff';
+    const waitStr = nextArrival ? (nextArrival.wait < 60 ? 'Tiba' : `${Math.ceil(nextArrival.wait/60)} mnt`) : '-';
+
+    html += `
+      <div class="station-item flex items-center gap-3 p-3 cursor-pointer" onclick="focusStation('${id}')">
+        <div class="w-3 h-3 rounded-full border-2" style="border-color:${color};${id==='cawang'?'background:'+color:''}"></div>
+        <div class="flex-1">
+          <div class="station-name text-sm font-medium">${st.name}</div>
+          <div class="text-[10px] text-gray-500 dark:text-gray-400">Berikutnya: ${nextArrival ? nextArrival.train.direction : 'Tidak ada'}</div>
+        </div>
+        <div class="station-trains font-mono text-xs">${waitStr}</div>
+      </div>`;
+  });
+
+  container.innerHTML = html;
+  if (mobileContainer) mobileContainer.innerHTML = html;
+}
+
+function renderScheduleFor(stationId) {
+  const st = STATIONS[stationId];
+  if (!st) return;
+
+  const t = simTime;
+  const upcoming = [];
+
+  ALL_TRAINS.forEach(train => {
+    train.timings.forEach(timing => {
+      if (timing.stationId === stationId) {
+        upcoming.push({ train, arriveAt: timing.arriveAt, departAt: timing.departAt });
+      }
+    });
+  });
+
+  upcoming.sort((a, b) => a.arriveAt - b.arriveAt);
+  const relevant = upcoming.filter(u => u.departAt >= t - 300).slice(0, 20);
+
+  let html = `<div class="p-3">
+    <div class="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-3">Jadwal — ${st.name}</div>`;
+
+  relevant.forEach(({ train, arriveAt, departAt }) => {
+    const diff = arriveAt - t;
+    let statusClass, statusText;
+    if (diff < -DWELL_TIME) {
+      statusClass = 'status-done'; statusText = 'Lewat';
+    } else if (diff <= 0) {
+      statusClass = 'status-running'; statusText = 'Di sini';
+    } else if (diff < 180) {
+      statusClass = 'status-running'; statusText = `${Math.ceil(diff/60)}m`;
+    } else {
+      statusClass = 'status-waiting'; statusText = `${Math.ceil(diff/60)}m`;
+    }
+
+    const lineIcon = train.line === 'cibubur' ? '🔵' : train.line === 'bekasi' ? '🟠' : '🟣';
+    html += `
+      <div class="sched-row flex items-center gap-3 py-2 text-xs border-b border-gray-200 dark:border-gray-800">
+        <span class="sched-time font-mono w-12">${secondsToTime(arriveAt).slice(0,5)}</span>
+        <span class="flex-1">${lineIcon} ${train.direction}</span>
+        <span class="${statusClass === 'status-running' ? 'text-green-500' : statusClass === 'status-waiting' ? 'text-gray-500' : 'line-through text-gray-400'}">${statusText}</span>
+      </div>`;
+  });
+
+  html += '</div>';
+  document.getElementById('schedule-content').innerHTML = html;
+  document.getElementById('mobile-schedule-content').innerHTML = html;
+}
+
+function focusStation(id) {
+  const st = STATIONS[id];
+  map.setView([st.lat, st.lon], 15, { animate: true });
+  stationMarkers[id]?.openPopup();
+}
+
+// ═══════════════════════════════════════════════════════════
+// MAIN UPDATE LOOP
+// ═══════════════════════════════════════════════════════════
+let lastTimestamp = null;
+let frameCount = 0;
+function update(timestamp) {
+  // Delta time calculation - convert ms to seconds
+  if (lastTimestamp === null) lastTimestamp = timestamp;
+  const deltaMs = timestamp - lastTimestamp;
+  lastTimestamp = timestamp;
+  const deltaSec = deltaMs / 1000;
+
+  // Advance simulation time based on REAL elapsed seconds × speed
+  updateSimTimeWithDelta(deltaSec);
+  const t = simTime;
+
+  // Clock
+  const timeStr = secondsToTime(t);
+  document.getElementById('clock-time').textContent = timeStr.slice(0,8);
+  const d = new Date();
+  document.getElementById('clock-date').textContent = d.toLocaleDateString('id-ID', {weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  document.getElementById('clock-speedlabel').textContent = simSpeed > 1 ? `Simulasi ${simSpeed}× lebih cepat` : '';
+  document.getElementById('update-time').textContent = `Update: ${timeStr.slice(0,8)}`;
+
+  // Update trains
+  const activeIds = new Set();
+
+  ALL_TRAINS.forEach(train => {
+    const markerKey = getTrainMarkerKey(train);
+    const state = getTrainState(train, t);
+    if (!state) {
+      if (trainMarkers[markerKey]) removeMarker(markerKey);
+      return;
+    }
+
+    activeIds.add(markerKey);
+    const marker = getOrCreateMarker(train);
+    marker.setLatLng([state.lat, state.lon]);
+
+    // Update popup if open
+    if (marker.isPopupOpen()) {
+      const nextName = state.nextStation ? STATIONS[state.nextStation]?.name : '-';
+      marker.getPopup().setContent(`
+        <div class="popup-title">🚈 Kereta ${train.id}</div>
+        <div class="popup-sub">${train.origin} ${train.direction} ${train.dest}</div>
+        <div style="margin-top:6px">
+          <div class="popup-sub">Status: <span class="popup-val">${state.phase === 'dwell' ? 'Di '+STATIONS[state.stationId]?.name : 'Bergerak'}</span></div>
+          <div class="popup-sub">Berikutnya: <span class="popup-val">${nextName}</span></div>
+          ${state.eta ? `<div class="popup-sub">ETA: <span class="popup-val">${state.eta} mnt</span></div>` : ''}
+        </div>
+      `);
+    }
+  });
+
+  // Remove markers for finished trains
+  Object.keys(trainMarkers).forEach(id => {
+    if (!activeIds.has(id)) removeMarker(id);
+  });
+
+  // Update sidebar every 5 frames
+  if (frameCount % 5 === 0) {
+    renderTrainList();
+    renderStationList();
+  }
+
+  frameCount++;
+  requestAnimationFrame(update);
+}
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+async function init() {
+  await loadScheduleData();
+  await loadRouteSegments();
+  drawRouteLines();
+  initSimTime();
+  // Initial render of sidebar content
+  renderTrainList();
+  renderStationList();
+  requestAnimationFrame(update);
+}
+
+init();
+
+// Keyboard shortcuts
+document.addEventListener('keydown', e => {
+  if (e.key === 'r' || e.key === 'R') {
+    simTime = getRealSecondsSinceMidnight();
+    simSpeed = 1;
+    document.getElementById('speed-display').textContent = '1×';
+  }
+  if (e.key === '+' || e.key === '=') changeSpeed(1);
+  if (e.key === '-') changeSpeed(-1);
+});
+</script>
+</body>
+</html>
