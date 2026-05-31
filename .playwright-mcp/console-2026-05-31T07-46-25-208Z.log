@@ -1,0 +1,5 @@
+[     223ms] [LOG] Loaded 270 trips from ./schedule_data.json @ http://localhost:8000/public/index-redesign-mobile-first.html:910
+[     236ms] [LOG] Route segments loaded: [dukuh_to_cibubur, cibubur_to_dukuh, dukuh_to_bekasi, bekasi_to_dukuh] @ http://localhost:8000/public/index-redesign-mobile-first.html:860
+[     468ms] [ERROR] Failed to load resource: the server responded with a status of 404 (File not found) @ http://localhost:8000/favicon.ico:0
+[  300103ms] [LOG] Loaded 270 trips from ./schedule_data.json @ http://localhost:8000/public/index-redesign-mobile-first.html:910
+[  300105ms] [LOG] Route segments loaded: [dukuh_to_cibubur, cibubur_to_dukuh, dukuh_to_bekasi, bekasi_to_dukuh] @ http://localhost:8000/public/index-redesign-mobile-first.html:860

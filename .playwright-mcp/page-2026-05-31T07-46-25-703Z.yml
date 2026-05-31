@@ -1,0 +1,45 @@
+- generic [ref=e2]:
+  - generic:
+    - generic:
+      - img
+    - generic:
+      - button [ref=e87] [cursor=pointer]
+      - button [ref=e89] [cursor=pointer]
+      - button [ref=e91] [cursor=pointer]
+      - button [ref=e93] [cursor=pointer]
+      - button [ref=e95] [cursor=pointer]
+      - button [ref=e97] [cursor=pointer]
+      - button [ref=e99] [cursor=pointer]
+      - button [ref=e101] [cursor=pointer]
+      - button [ref=e103] [cursor=pointer]
+      - button [ref=e105] [cursor=pointer]
+      - button [ref=e107] [cursor=pointer]
+      - button [ref=e109] [cursor=pointer]
+      - button [ref=e111] [cursor=pointer]
+      - button [ref=e113] [cursor=pointer]
+      - button [ref=e115] [cursor=pointer]
+      - button [ref=e117] [cursor=pointer]
+      - button [ref=e119] [cursor=pointer]
+      - button [ref=e121] [cursor=pointer]
+      - button [ref=e123] [cursor=pointer]
+      - button [ref=e125] [cursor=pointer]
+      - button [ref=e127] [cursor=pointer]
+      - button [ref=e129] [cursor=pointer]
+      - button [ref=e131] [cursor=pointer]
+      - button [ref=e133] [cursor=pointer]
+      - button [ref=e135] [cursor=pointer]
+      - button [ref=e137] [cursor=pointer]
+      - button [ref=e139] [cursor=pointer]
+      - button [ref=e141] [cursor=pointer]
+      - button [ref=e143] [cursor=pointer]
+      - button [ref=e145] [cursor=pointer]
+      - button [ref=e147] [cursor=pointer]
+      - button [ref=e149] [cursor=pointer]
+      - button [ref=e151] [cursor=pointer]
+      - button [ref=e153] [cursor=pointer]
+      - button [ref=e155] [cursor=pointer]
+  - generic:
+    - generic [ref=e157]: "Data: OpenStreetMap • GAPEKA KAI | ©OpenStreetMap ©CARTO"
+    - generic [ref=e158]:
+      - button "Zoom in" [ref=e159] [cursor=pointer]: +
+      - button "Zoom out" [ref=e160] [cursor=pointer]: −

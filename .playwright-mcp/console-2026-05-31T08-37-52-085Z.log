@@ -1,0 +1,2 @@
+[     121ms] [LOG] Loaded 270 trips from ./schedule_data.json @ http://localhost:8000/public/mobile.html:936
+[     134ms] [LOG] Route segments loaded: [dukuh_to_cibubur, cibubur_to_dukuh, dukuh_to_bekasi, bekasi_to_dukuh] @ http://localhost:8000/public/mobile.html:886

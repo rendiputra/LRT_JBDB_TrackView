@@ -167,20 +167,46 @@ html, body {
   box-shadow: var(--shadow);
   display: flex;
   flex-direction: column;
-  max-height: 75vh;
+  max-height: 80px; /* collapsed - peek state */
   overflow: hidden;
+  transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.bottom-sheet.expanded {
+  max-height: 75vh; /* expanded - full content */
 }
 
 .drag-handle-area {
   padding: 12px 0 8px;
   cursor: grab;
   flex-shrink: 0;
+  position: relative;
 }
+.drag-handle-area:active { cursor: grabbing; }
+
 .drag-handle {
   width: 40px; height: 4px;
   border-radius: 2px;
   background: var(--border);
   margin: 0 auto;
+  transition: transform 0.2s, opacity 0.2s;
+}
+
+/* Visual indicator that sheet can be swiped */
+.drag-handle-area::after {
+  content: '';
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 32px; height: 3px;
+  background: var(--border);
+  border-radius: 2px;
+  opacity: 0.5;
+}
+
+.bottom-sheet.expanded .drag-handle-area::after {
+  opacity: 0;
 }
 
 .tab-bar {
@@ -633,7 +659,7 @@ html, body {
 
 <!-- BOTTOM SHEET -->
 <div class="bottom-sheet" id="bottom-sheet">
-  <div class="drag-handle-area">
+  <div class="drag-handle-area" id="drag-area">
     <div class="drag-handle"></div>
   </div>
 
@@ -1292,6 +1318,36 @@ function update() {
   frameCount++;
   requestAnimationFrame(update);
 }
+
+// ═══════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+// BOTTOM SHEET GESTURE HANDLER
+// ═══════════════════════════════════════════════════════════════
+const dragArea = document.getElementById('drag-area');
+const sheet = document.getElementById('bottom-sheet');
+let startY = 0;
+let startMaxHeight = 0;
+
+dragArea.addEventListener('touchstart', e => {
+  startY = e.touches[0].clientY;
+  startMaxHeight = sheet.classList.contains('expanded') ? 75 : 0;
+}, { passive: true });
+
+dragArea.addEventListener('touchmove', e => {
+  const diff = startY - e.touches[0].clientY; // positive = swipe up
+  if (diff > 50) {
+    sheet.classList.add('expanded');
+  } else if (diff < -50) {
+    sheet.classList.remove('expanded');
+  }
+}, { passive: true });
+
+// Tap drag handle to toggle
+dragArea.addEventListener('click', () => {
+  sheet.classList.toggle('expanded');
+});
 
 // ═══════════════════════════════════════════════════════════════
 // INIT
