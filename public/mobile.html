@@ -1,0 +1,1318 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>LRT Jabodebek — Live Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   CSS VARIABLES & THEMING
+   ═══════════════════════════════════════════════════════════════ */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root,
+:root[data-theme="dark"] {
+  --bg: #0a0e17;
+  --panel: #111722;
+  --panel2: #161d2c;
+  --panel3: #1a2235;
+  --border: #1e2d45;
+  --border-subtle: #162033;
+  --accent: #00d4aa;
+  --accent-dim: #00a88a;
+  --accent2: #ff6b35;
+  --line-cibubur: #00c8ff;
+  --line-bekasi: #ff9900;
+  --line-main: #a855f7;
+  --text: #e2e8f0;
+  --text-dim: #64748b;
+  --text-bright: #f8fafc;
+  --glow: rgba(0,212,170,0.15);
+  --glass: rgba(17,23,34,0.85);
+  --glass-border: rgba(30,45,69,0.6);
+  --scroll-thumb: #334155;
+  --train-size: 18px;
+  --shadow: 0 -4px 24px rgba(0,0,0,0.4);
+}
+
+:root[data-theme="light"] {
+  --bg: #f0f4f8;
+  --panel: #ffffff;
+  --panel2: #f1f5f9;
+  --panel3: #e8eef4;
+  --border: #e2e8f0;
+  --border-subtle: #f1f5f9;
+  --accent: #0d9488;
+  --accent-dim: #0f766e;
+  --accent2: #ea580c;
+  --line-cibubur: #0891b2;
+  --line-bekasi: #c2410c;
+  --line-main: #7c3aed;
+  --text: #1e293b;
+  --text-dim: #64748b;
+  --text-bright: #0f172a;
+  --glow: rgba(13,148,136,0.1);
+  --glass: rgba(255,255,255,0.9);
+  --glass-border: rgba(226,232,240,0.8);
+  --scroll-thumb: #cbd5e1;
+  --train-size: 18px;
+  --shadow: 0 -4px 24px rgba(0,0,0,0.1);
+}
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'IBM Plex Sans', sans-serif;
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MAP CONTAINER
+   ═══════════════════════════════════════════════════════════════ */
+#map {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  width: 100%; height: 100%;
+  z-index: 0;
+  background: var(--bg);
+}
+
+:root[data-theme="dark"] .leaflet-tile-pane { filter: brightness(0.7) saturate(0.4) hue-rotate(180deg); }
+:root[data-theme="light"] .leaflet-tile-pane { filter: saturate(0.9); }
+.leaflet-container { background: var(--bg); }
+.leaflet-control-zoom { border: none !important; }
+.leaflet-control-zoom a {
+  background: var(--panel) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--border) !important;
+  width: 36px !important; height: 36px !important;
+  line-height: 36px !important;
+}
+.leaflet-control-zoom a:hover { background: var(--panel2) !important; }
+
+/* ═══════════════════════════════════════════════════════════════
+   FLOATING CONTROLS
+   ═══════════════════════════════════════════════════════════════ */
+.theme-toggle {
+  position: fixed;
+  bottom: 16px;
+  left: 16px;
+  z-index: 1000;
+  width: 48px; height: 48px;
+  border-radius: 24px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: transform 0.2s, background0.3s;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+.theme-toggle:hover { transform: scale(1.05); }
+.theme-toggle:active { transform: scale(0.95); }
+.theme-toggle .icon-sun { display: none; color: var(--accent); }
+.theme-toggle .icon-moon { display: block; color: var(--text-dim); }
+:root[data-theme="light"] .theme-toggle .icon-sun { display: block; color: var(--text-dim); }
+:root[data-theme="light"] .theme-toggle .icon-moon { display: none; color: var(--accent); }
+
+.speed-fab {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 8px 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+.speed-btn {
+  width: 32px; height: 32px;
+  border-radius: 16px;
+  background: var(--panel2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: 'Space Mono', monospace;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+}
+.speed-btn:hover { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+.speed-val {
+  font-family: 'Space Mono', monospace;
+  font-size: 13px;
+  color: var(--accent);
+  min-width: 36px;
+  text-align: center;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   BOTTOM SHEET (Mobile)
+   ═══════════════════════════════════════════════════════════════ */
+.bottom-sheet {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  z-index: 500;
+  background: var(--panel);
+  border-radius: 20px 20px 0 0;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  max-height: 75vh;
+  overflow: hidden;
+}
+
+.drag-handle-area {
+  padding: 12px 0 8px;
+  cursor: grab;
+  flex-shrink: 0;
+}
+.drag-handle {
+  width: 40px; height: 4px;
+  border-radius: 2px;
+  background: var(--border);
+  margin: 0 auto;
+}
+
+.tab-bar {
+  display: flex;
+  gap: 6px;
+  padding: 0 12px 8px;
+  flex-shrink: 0;
+}
+.tab-btn {
+  flex: 1;
+  height: 48px;
+  border-radius: 12px;
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 4px;
+  transition: all 0.2s;
+}
+.tab-btn svg { width: 18px; height: 18px; }
+.tab-btn.active {
+  background: var(--accent);
+  color: var(--bg);
+}
+.tab-btn:active { transform: scale(0.97); }
+
+.clock-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px 12px;
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+.clock-main { display: flex; align-items: baseline; gap: 8px; }
+.clock-time {
+  font-family: 'Space Mono', monospace;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--accent);
+}
+.clock-date { font-size: 11px; color: var(--text-dim); }
+.schedule-badge {
+  font-size: 10px;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 12px;
+  background: var(--panel2);
+  color: var(--text-dim);
+}
+.schedule-badge.weekend { background: var(--accent2); color: white; }
+
+.sheet-content {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: y mandatory;
+}
+
+.tab-panel {
+  min-height: 100%;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  padding: 12px 16px 24px;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.panel-title {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+}
+.panel-count {
+  font-family: 'Space Mono', monospace;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--glow);
+  padding: 2px 10px;
+  border-radius: 10px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TRAIN CARDS
+   ═══════════════════════════════════════════════════════════════ */
+.train-list { display: flex; flex-direction: column; gap: 8px; }
+
+.train-card {
+  background: var(--panel2);
+  border-radius: 12px;
+  padding: 12px;
+  border-left: 4px solid var(--line-main);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.train-card:active { transform: scale(0.98); }
+.train-card[data-line="cibubur"] { border-left-color: var(--line-cibubur); }
+.train-card[data-line="bekasi"] { border-left-color: var(--line-bekasi); }
+.train-card.selected { background: var(--glow); }
+
+.train-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.train-badge {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+  letter-spacing: 0.05em;
+}
+.badge-cibubur { background: rgba(0,200,255,0.15); color: var(--line-cibubur); }
+.badge-bekasi { background: rgba(255,153,0,0.15); color: var(--line-bekasi); }
+.train-name { font-size: 14px; font-weight: 600; color: var(--text-bright); }
+.train-route { font-size: 11px; color: var(--text-dim); margin-bottom: 8px; }
+
+.train-progress {
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+.train-progress-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.5s ease;
+}
+
+.train-status {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+.train-status span { color: var(--accent); font-family: 'Space Mono', monospace; }
+
+/* ═══════════════════════════════════════════════════════════════
+   STATION CARDS
+   ═══════════════════════════════════════════════════════════════ */
+.station-list { display: flex; flex-direction: column; }
+
+.station-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border-subtle);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.station-card:active { background: var(--panel2); }
+.station-card:last-child { border-bottom: none; }
+
+.station-dot {
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  border: 2px solid;
+  flex-shrink: 0;
+}
+.station-card[data-line="main"] .station-dot { border-color: var(--line-main); }
+.station-card[data-line="cibubur"] .station-dot { border-color: var(--line-cibubur); }
+.station-card[data-line="bekasi"] .station-dot { border-color: var(--line-bekasi); }
+.station-card[data-line="junction"] .station-dot { border-color: var(--line-main); background: var(--line-main); }
+
+.station-info { flex: 1; min-width: 0; }
+.station-name { font-size: 13px; font-weight: 500; color: var(--text-bright); }
+.station-next { font-size: 11px; color: var(--text-dim); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.station-wait {
+  font-family: 'Space Mono', monospace;
+  font-size: 12px;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SCHEDULE
+   ═══════════════════════════════════════════════════════════════ */
+.schedule-hint {
+  text-align: center;
+  padding: 32px 16px;
+  color: var(--text-dim);
+  font-size: 13px;
+}
+
+.schedule-section { padding: 8px 0; }
+.schedule-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.schedule-station { font-size: 14px; font-weight: 600; color: var(--text-bright); }
+
+.sched-row {
+  display: grid;
+  grid-template-columns: 50px 1fr 50px;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 12px;
+}
+.sched-time { font-family: 'Space Mono', monospace; color: var(--accent); }
+.sched-dest { color: var(--text); }
+.sched-status { text-align: right; }
+.status-running { color: #22c55e; }
+.status-waiting { color: var(--text-dim); }
+.status-done { color: var(--border); text-decoration: line-through; }
+
+/* ═══════════════════════════════════════════════════════════════
+   TRAIN MARKERS
+   ═══════════════════════════════════════════════════════════════ */
+.train-marker {
+  width: var(--train-size);
+  height: var(--train-size);
+  border-radius: 50%;
+  border: 2px solid white;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 8px;
+  font-weight: bold;
+  box-shadow: 0 0 8px currentColor, 0 2px 8px rgba(0,0,0,0.5);
+  transition: transform 0.3s ease;
+  cursor: pointer;
+  position: relative;
+}
+.train-marker::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.2;
+  animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  0%, 100% { transform: scale(1); opacity: 0.2; }
+  50% { transform: scale(1.5); opacity: 0; }
+}
+
+.station-marker {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  border: 2px solid;
+  background: var(--bg);
+}
+
+/* Leaflet popup */
+.leaflet-popup-content-wrapper {
+  background: var(--panel) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 12px !important;
+  color: var(--text) !important;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5) !important;
+}
+.leaflet-popup-tip { background: var(--panel) !important; }
+.leaflet-popup-content { margin: 12px 16px !important; }
+.popup-title { font-weight: 600; font-size: 13px; color: var(--text-bright); margin-bottom: 4px; }
+.popup-sub { font-size: 11px; color: var(--text-dim); }
+.popup-val { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--accent); }
+
+/* ═══════════════════════════════════════════════════════════════
+   SCROLLBAR
+   ═══════════════════════════════════════════════════════════════ */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--scroll-thumb); border-radius: 2px; }
+
+/* ═══════════════════════════════════════════════════════════════
+   RESPONSIVE: TABLET
+   ═══════════════════════════════════════════════════════════════ */
+@media (min-width: 640px) {
+  .bottom-sheet {
+    max-width: 500px;
+    margin: 0 auto;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  .speed-fab { right: calc(50% - 250px - 80px); }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RESPONSIVE: DESKTOP
+   ═══════════════════════════════════════════════════════════════ */
+@media (min-width: 1024px) {
+  .bottom-sheet, .theme-toggle, .speed-fab { display: none; }
+  
+  .sidebar-desktop {
+    display: flex;
+    flex-direction: column;
+    width: 320px;
+    position: fixed;
+    top: 0; right: 0;
+    height: 100vh;
+    background: var(--panel);
+    border-left: 1px solid var(--border);
+    z-index: 100;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   DESKTOP SIDEBAR STYLES
+   ═══════════════════════════════════════════════════════════════ */
+.sidebar-desktop { display: none; }
+
+.sidebar-header {
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.logo { display: flex; align-items: center; gap: 12px; }
+.logo-icon {
+  width: 40px; height: 40px;
+  background: linear-gradient(135deg, var(--accent), #0099cc);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+}
+.logo-text {
+  font-family: 'Space Mono', monospace;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-bright);
+  letter-spacing: 0.05em;
+}
+.logo-sub {
+  font-size: 10px;
+  color: var(--accent);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.sidebar-clock {
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
+  text-align: center;
+}
+.clock-time-lg {
+  font-family: 'Space Mono', monospace;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--accent);
+}
+.clock-date-lg { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
+
+.sidebar-stats {
+  display: flex;
+  justify-content: space-around;
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.stat-item { text-align: center; }
+.stat-num {
+  font-family: 'Space Mono', monospace;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-bright);
+}
+.stat-label {
+  font-size: 10px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-top: 2px;
+}
+
+.sidebar-speed {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.speed-label { font-size: 12px; color: var(--text-dim); }
+.speed-controls { display: flex; align-items: center; gap: 8px; }
+
+.sidebar-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+}
+.sidebar-tabs .tab-btn {
+  flex: 1;
+  height: 44px;
+  border-radius: 0;
+  font-size: 12px;
+  flex-direction: row;
+  gap: 6px;
+}
+.sidebar-tabs .tab-btn svg { width: 16px; height: 16px; }
+
+.tab-content { display: none; flex: 1; overflow-y: auto; }
+.tab-content.active { display: flex; flex-direction: column; }
+
+.sidebar-legend {
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+.legend-line {
+  width: 24px; height: 3px;
+  border-radius: 2px;
+}
+</style>
+</head>
+<body>
+
+<!-- MAP -->
+<div id="map"></div>
+
+<!-- FLOATING CONTROLS -->
+<button id="theme-toggle" class="theme-toggle" aria-label="Toggle theme">
+  <svg class="icon-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+  </svg>
+  <svg class="icon-moon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+  </svg>
+</button>
+
+<div class="speed-fab">
+  <button class="speed-btn" onclick="changeSpeed(-1)" aria-label="Decrease speed">−</button>
+  <span class="speed-val" id="speed-display">1×</span>
+  <button class="speed-btn" onclick="changeSpeed(1)" aria-label="Increase speed">+</button>
+</div>
+
+<!-- BOTTOM SHEET -->
+<div class="bottom-sheet" id="bottom-sheet">
+  <div class="drag-handle-area">
+    <div class="drag-handle"></div>
+  </div>
+
+  <div class="tab-bar" role="tablist">
+    <button class="tab-btn active" role="tab" aria-selected="true" data-tab="trains">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v3"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/>
+      </svg>
+      <span>Kereta</span>
+    </button>
+    <button class="tab-btn" role="tab" aria-selected="false" data-tab="stations">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 0 0-8 8c0 5.4 8 12 8 12s8-6.6 8-12a8 8 0 0 0-8-8z"/>
+      </svg>
+      <span>Stasiun</span>
+    </button>
+    <button class="tab-btn" role="tab" aria-selected="false" data-tab="schedule">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
+      </svg>
+      <span>Jadwal</span>
+    </button>
+  </div>
+
+  <div class="clock-strip">
+    <div class="clock-main">
+      <span class="clock-time" id="clock-time">--:--:--</span>
+      <span class="clock-date" id="clock-date">Memuat...</span>
+    </div>
+    <span class="schedule-badge" id="schedule-badge">Hari Kerja</span>
+  </div>
+
+  <div class="sheet-content" id="sheet-content">
+    <div class="tab-panel" id="panel-trains" data-panel="trains">
+      <div class="panel-header">
+        <span class="panel-title">Kereta Aktif</span>
+        <span class="panel-count" id="stat-running">0</span>
+      </div>
+      <div class="train-list" id="train-list"></div>
+    </div>
+
+    <div class="tab-panel" id="panel-stations" data-panel="stations">
+      <div class="panel-header">
+        <span class="panel-title">Stasiun</span>
+        <span class="panel-count">18</span>
+      </div>
+      <div class="station-list" id="station-list"></div>
+    </div>
+
+    <div class="tab-panel" id="panel-schedule" data-panel="schedule">
+      <div class="schedule-content" id="schedule-content">
+        <div class="schedule-hint">Ketuk stasiun di peta untuk melihat jadwal</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DESKTOP SIDEBAR -->
+<div class="sidebar-desktop" id="sidebar-desktop">
+  <div class="sidebar-header">
+    <div class="logo">
+      <div class="logo-icon">🚈</div>
+      <div>
+        <div class="logo-text">LRT JABODEBEK</div>
+        <div class="logo-sub">Live Position Tracker</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar-clock">
+    <div class="clock-time-lg" id="clock-time-lg">--:--:--</div>
+    <div class="clock-date-lg" id="clock-date-lg">Memuat...</div>
+  </div>
+
+  <div class="sidebar-stats">
+    <div class="stat-item">
+      <span class="stat-num" id="stat-running-desktop">0</span>
+      <span class="stat-label">Kereta Aktif</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-num">18</span>
+      <span class="stat-label">Stasiun</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-num">3</span>
+      <span class="stat-label">Jalur</span>
+    </div>
+  </div>
+
+  <div class="sidebar-speed">
+    <span class="speed-label">Kecepatan</span>
+    <div class="speed-controls">
+      <button class="speed-btn" onclick="changeSpeed(-1)">−</button>
+      <span class="speed-val" id="speed-display-desktop">1×</span>
+      <button class="speed-btn" onclick="changeSpeed(1)">+</button>
+    </div>
+  </div>
+
+  <div class="sidebar-tabs">
+    <button class="tab-btn active" onclick="switchTabDesktop('trains', this)">Kereta</button>
+    <button class="tab-btn" onclick="switchTabDesktop('stations', this)">Stasiun</button>
+    <button class="tab-btn" onclick="switchTabDesktop('schedule', this)">Jadwal</button>
+  </div>
+
+  <div class="tab-content active" id="desktop-trains">
+    <div class="train-list" id="train-list-desktop"></div>
+  </div>
+  <div class="tab-content" id="desktop-stations">
+    <div class="station-list" id="station-list-desktop"></div>
+  </div>
+  <div class="tab-content" id="desktop-schedule">
+    <div class="schedule-content" id="schedule-content-desktop"></div>
+  </div>
+
+  <div class="sidebar-legend">
+    <div class="legend-item"><div class="legend-line" style="background:var(--line-cibubur)"></div> Cibubur Line</div>
+    <div class="legend-item"><div class="legend-line" style="background:var(--line-bekasi)"></div> Bekasi Line</div>
+    <div class="legend-item"><div class="legend-line" style="background:var(--line-main)"></div> Main Line</div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// DATA: STATIONS
+// ═══════════════════════════════════════════════════════════════
+const STATIONS = {
+  dukuh_atas:      { name:"Dukuh Atas",        lat:-6.2048, lon:106.8255, lines:["main"] },
+  setiabudi:       { name:"Setiabudi",         lat:-6.2093, lon:106.8302, lines:["main"] },
+  rasuna_said:     { name:"Rasuna Said",       lat:-6.2216, lon:106.8322, lines:["main"] },
+  kuningan:        { name:"Kuningan",          lat:-6.2288, lon:106.8332, lines:["main"] },
+  pancoran:        { name:"Pancoran",          lat:-6.2421, lon:106.8385, lines:["main"] },
+  cikoko:          { name:"Cikoko",            lat:-6.2435, lon:106.8571, lines:["main"] },
+  ciliwung:        { name:"Ciliwung",          lat:-6.2434, lon:106.8640, lines:["main"] },
+  cawang:          { name:"Cawang",            lat:-6.2459, lon:106.8712, lines:["main","cibubur","bekasi"] },
+  taman_mini:      { name:"TMII",              lat:-6.2929, lon:106.8806, lines:["cibubur"] },
+  kampung_rambutan:{ name:"Kampung Rambutan",  lat:-6.3096, lon:106.8844, lines:["cibubur"] },
+  ciracas:         { name:"Ciracas",           lat:-6.3238, lon:106.8866, lines:["cibubur"] },
+  harjamukti:      { name:"Harjamukti",        lat:-6.3739, lon:106.8957, lines:["cibubur"] },
+  halim:           { name:"Halim",             lat:-6.2459, lon:106.8873, lines:["bekasi"] },
+  jatibening:      { name:"Jatibening Baru",   lat:-6.2577, lon:106.9279, lines:["bekasi"] },
+  cikunir1:        { name:"Cikunir 1",         lat:-6.2566, lon:106.9519, lines:["bekasi"] },
+  cikunir2:        { name:"Cikunir 2",         lat:-6.2546, lon:106.9632, lines:["bekasi"] },
+  bekasi_barat:    { name:"Bekasi Barat",      lat:-6.2529, lon:106.99040, lines:["bekasi"] },
+  jatimulya:       { name:"Jatimulya",         lat:-6.2641, lon:107.0217, lines:["bekasi"] },
+};
+
+const ROUTES = {
+  cibubur_to_dukuh: ["harjamukti","ciracas","kampung_rambutan","taman_mini","cawang","ciliwung","cikoko","pancoran","kuningan","rasuna_said","setiabudi","dukuh_atas"],
+  dukuh_to_cibubur: ["dukuh_atas","setiabudi","rasuna_said","kuningan","pancoran","cikoko","ciliwung","cawang","taman_mini","kampung_rambutan","ciracas","harjamukti"],
+  bekasi_to_dukuh: ["jatimulya","bekasi_barat","cikunir2","cikunir1","jatibening","halim","cawang","ciliwung","cikoko","pancoran","kuningan","rasuna_said","setiabudi","dukuh_atas"],
+  dukuh_to_bekasi: ["dukuh_atas","setiabudi","rasuna_said","kuningan","pancoran","cikoko","ciliwung","cawang","halim","jatibening","cikunir1","cikunir2","bekasi_barat","jatimulya"],
+};
+
+const TRAVEL_TIMES = {
+  dukuh_atas_setiabudi: 3, setiabudi_rasuna_said: 3, rasuna_said_kuningan: 3,
+  kuningan_pancoran: 5, pancoran_cikoko: 4, cikoko_ciliwung: 3, ciliwung_cawang: 3,
+  cawang_taman_mini: 7, taman_mini_kampung_rambutan: 6, kampung_rambutan_ciracas: 7, ciracas_harjamukti: 5,
+  cawang_halim: 4, halim_jatibening: 8, jatibening_cikunir1: 5,
+  cikunir1_cikunir2: 4, cikunir2_bekasi_barat: 9, bekasi_barat_jatimulya: 8,
+};
+
+function getTravelTime(a, b) {
+  const key1 = `${a}_${b}`, key2 = `${b}_${a}`;
+  return (TRAVEL_TIMES[key1] || TRAVEL_TIMES[key2] || 4) * 60;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ROUTE GEOMETRY
+// ═══════════════════════════════════════════════════════════════
+const ROUTE_SEGMENTS = {};
+
+function haversineDist(lon1, lat1, lon2, lat2) {
+  const R = 6371000;
+  const p1 = lat1 * Math.PI/180, p2 = lat2 * Math.PI/180;
+  const dp = (lat2-lat1)*Math.PI/180, dl = (lon2-lon1)*Math.PI/180;
+  const a = Math.sin(dp/2)**2 + Math.cos(p1)*Math.cos(p2)*Math.sin(dl/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function buildCumulativeDistances(coords) {
+  const cumDist = [0];
+  for (let i = 1; i < coords.length; i++) {
+    const d = haversineDist(coords[i-1][0], coords[i-1][1], coords[i][0], coords[i][1]);
+    cumDist.push(cumDist[i-1] + d);
+  }
+  return cumDist;
+}
+
+function interpolateAlongTrack(segmentData, frac) {
+  if (!segmentData || !segmentData.coords || segmentData.coords.length < 2) return null;
+  const { coords, cumDist } = segmentData;
+  const totalLen = cumDist[cumDist.length - 1];
+  const targetDist = frac * totalLen;
+  for (let i = 1; i < cumDist.length; i++) {
+    if (cumDist[i] >= targetDist) {
+      const segLen = cumDist[i] - cumDist[i-1];
+      const t = segLen > 0 ? (targetDist - cumDist[i-1]) / segLen : 0;
+      const lon = coords[i-1][0] + (coords[i][0] - coords[i-1][0]) * t;
+      const lat = coords[i-1][1] + (coords[i][1] - coords[i-1][1]) * t;
+      return { lat, lon };
+    }
+  }
+  const last = coords[coords.length - 1];
+  return { lat: last[1], lon: last[0] };
+}
+
+function getSegmentKey(fromStation, toStation) { return `${fromStation}_TO_${toStation}`; }
+function getRouteSegment(routeName, fromStation, toStation) {
+  if (!ROUTE_SEGMENTS[routeName]) return null;
+  return ROUTE_SEGMENTS[routeName][getSegmentKey(fromStation, toStation)] || null;
+}
+
+async function loadRouteSegments() {
+  try {
+    const response = await fetch('./rute_lrt_siap_pakai.geojson');
+    if (!response.ok) throw new Error('Failed to load route segments');
+    const geojson = await response.json();
+    geojson.features.forEach(feat => {
+      const { route, from: fromSt, to: toSt } = feat.properties;
+      const coords = feat.geometry.coordinates;
+      const cumDist = buildCumulativeDistances(coords);
+      if (!ROUTE_SEGMENTS[route]) ROUTE_SEGMENTS[route] = {};
+      ROUTE_SEGMENTS[route][getSegmentKey(fromSt, toSt)] = { coords, cumDist };
+    });
+    console.log('Route segments loaded:', Object.keys(ROUTE_SEGMENTS));
+  } catch (err) {
+    console.error('Failed to load route segments:', err);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// UTILITY FUNCTIONS
+// ═══════════════════════════════════════════════════════════════
+function secondsToTime(s) {
+  s = ((s % 86400) + 86400) % 86400;
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = Math.floor(s % 60);
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+}
+
+const DWELL_TIME = 45;
+
+// ═══════════════════════════════════════════════════════════════
+// SCHEDULE DATA
+// ═══════════════════════════════════════════════════════════════
+let ALL_TRAINS = [];
+
+async function loadScheduleData() {
+  try {
+    let holidays = [];
+    try {
+      const holidayResponse = await fetch('./hari_libur/hari_libur2026.json');
+      if (holidayResponse.ok) {
+        const holidayData = await holidayResponse.json();
+        holidays = holidayData.data || [];
+      }
+    } catch (err) { console.warn('Gagal memuat data hari libur:', err); }
+
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+    const dayOfWeek = today.getDay();
+    const isHoliday = holidays.some(h => h.date === todayStr && (h.is_holiday || h.is_joint_holiday));
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+    const useWeekendSchedule = isWeekend || isHoliday;
+    const scheduleFile = useWeekendSchedule ? './schedule_data.json' : './schedule_data_weekdays.json';
+    const holidayInfo = holidays.find(h => h.date === todayStr && (h.is_holiday || h.is_joint_holiday));
+    let scheduleInfo = useWeekendSchedule ? 'Jadwal Akhir Pekan/Libur' : 'Jadwal Hari Kerja';
+    if (holidayInfo) scheduleInfo = `LIBUR: ${holidayInfo.name}`;
+
+    const response = await fetch(scheduleFile);
+    if (!response.ok) throw new Error('Failed to load schedule data');
+    ALL_TRAINS = await response.json();
+
+    console.log(`Loaded ${ALL_TRAINS.length} trips from ${scheduleFile}`);
+    const dateStr = today.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    document.getElementById('clock-date').textContent = dateStr;
+    document.getElementById('clock-date-lg').textContent = dateStr;
+    document.getElementById('schedule-badge').textContent = scheduleInfo;
+    if (holidayInfo) document.getElementById('schedule-badge').classList.add('weekend');
+
+  } catch (err) {
+    console.error('Failed to load schedule:', err);
+    try {
+      const response = await fetch('./schedule_data.json');
+      if (response.ok) { ALL_TRAINS = await response.json(); console.log(`Loaded ${ALL_TRAINS.length} trips from fallback`); return; }
+    } catch (e) { console.error('Fallback also failed'); }
+    ALL_TRAINS = [];
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TIME SIMULATION
+// ═══════════════════════════════════════════════════════════════
+let simTime = null;
+let simSpeed = 1;
+let lastRealTime = null;
+
+function getRealSecondsSinceMidnight() {
+  const now = new Date();
+  return now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+}
+
+function initSimTime() { simTime = getRealSecondsSinceMidnight(); lastRealTime = Date.now(); }
+
+function updateSimTime() {
+  const now = Date.now();
+  const elapsed = (now - lastRealTime) / 1000;
+  simTime = (simTime + elapsed * simSpeed) % 86400;
+  lastRealTime = now;
+}
+
+function changeSpeed(delta) {
+  const speeds = [0.5, 1, 2, 5, 10, 30, 60, 120];
+  const idx = speeds.indexOf(simSpeed);
+  const newIdx = Math.max(0, Math.min(speeds.length-1, idx + delta));
+  simSpeed = speeds[newIdx];
+  document.getElementById('speed-display').textContent = simSpeed + '×';
+  document.getElementById('speed-display-desktop').textContent = simSpeed + '×';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TRAIN POSITION ENGINE
+// ═══════════════════════════════════════════════════════════════
+function getTrainState(train, t) {
+  const timings = train.timings;
+  if (t < timings[0].arriveAt) return null;
+  const last = timings[timings.length - 1];
+  if (t > last.departAt) return null;
+
+  for (let i = 0; i < timings.length; i++) {
+    const curr = timings[i];
+    if (t >= curr.arriveAt && t <= curr.departAt) {
+      return { phase: 'dwell', stationId: curr.stationId, lat: STATIONS[curr.stationId].lat, lon: STATIONS[curr.stationId].lon, stationIndex: i, totalStations: timings.length, nextStation: i < timings.length - 1 ? timings[i+1].stationId : null, progress: i / (timings.length - 1) };
+    }
+    if (i < timings.length - 1) {
+      const next = timings[i+1];
+      if (t > curr.departAt && t < next.arriveAt) {
+        const travelDuration = next.arriveAt - curr.departAt;
+        const elapsed = t - curr.departAt;
+        const frac = Math.min(1, elapsed / travelDuration);
+        const ease = frac < 0.5 ? 2*frac*frac : -1+(4-2*frac)*frac;
+        const segment = getRouteSegment(train.route, curr.stationId, next.stationId);
+        let lat, lon;
+        if (segment) { const pos = interpolateAlongTrack(segment, ease); lat = pos.lat; lon = pos.lon; }
+        else { const fromSt = STATIONS[curr.stationId]; const toSt = STATIONS[next.stationId]; lat = fromSt.lat + (toSt.lat - fromSt.lat) * ease; lon = fromSt.lon + (toSt.lon - fromSt.lon) * ease; }
+        return { phase: 'moving', fromStation: curr.stationId, toStation: next.stationId, lat, lon, frac: ease, stationIndex: i, totalStations: timings.length, nextStation: next.stationId, eta: Math.ceil((next.arriveAt - t) / 60), progress: (i + ease) / (timings.length - 1) };
+      }
+    }
+  }
+  return null;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MAP SETUP
+// ═══════════════════════════════════════════════════════════════
+const map = L.map('map', {
+  center: [-6.2600, 106.9200],
+  zoom: 12,
+  zoomControl: false,
+  attributionControl: false,
+});
+
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+  attribution: '©OpenStreetMap ©CARTO',
+  subdomains: 'abcd',
+  maxZoom: 19,
+}).addTo(map);
+
+L.control.zoom({ position: 'bottomright' }).addTo(map);
+L.control.attribution({ position: 'bottomleft', prefix: 'Data: OpenStreetMap • GAPEKA KAI' }).addTo(map);
+
+// Draw track from GeoJSON
+fetch('./export.geojson')
+  .then(response => {
+    if (!response.ok) throw new Error("Gagal memuat file geojson");
+    return response.json();
+  })
+  .then(geojsonData => {
+    L.geoJSON(geojsonData, {
+      style: (feature) => {
+        const service = feature.properties && feature.properties.service;
+        return { color: service === 'siding' ? '#1e2d45' : '#2a4a7a', weight: service === 'siding' ? 1 : 3, opacity: service === 'siding' ? 0.5 : 0.8 };
+      }
+    }).addTo(map);
+  })
+  .catch(error => { console.error('Error memuat GeoJSON:', error); });
+
+// Draw colored route lines
+const LINE_COLORS = { main: '#a855f7', cibubur: '#00c8ff', bekasi: '#ff9900' };
+const routePolylines = { main: null, cibubur: null, bekasi: null };
+
+function drawRouteLines() {
+  const mainStations = ['dukuh_atas','setiabudi','rasuna_said','kuningan','pancoran','cikoko','ciliwung','cawang'];
+  const cibuburStations = ['cawang','taman_mini','kampung_rambutan','ciracas','harjamukti'];
+  const bekasiStations = ['cawang','halim','jatibening','cikunir1','cikunir2','bekasi_barat','jatimulya'];
+  
+  function collectCoords(stationList, routeName) {
+    const allCoords = [];
+    for (let i = 0; i < stationList.length - 1; i++) {
+      const seg = getRouteSegment(routeName, stationList[i], stationList[i+1]);
+      if (seg) {
+        const leafletCoords = seg.coords.map(c => [c[1], c[0]]);
+        if (allCoords.length > 0) leafletCoords.shift();
+        allCoords.push(...leafletCoords);
+      }
+    }
+    return allCoords;
+  }
+  
+  const mainCoords = collectCoords(mainStations, 'dukuh_to_cibubur');
+  if (mainCoords.length > 0) routePolylines.main = L.polyline(mainCoords, { color: '#a855f7', weight: 4, opacity: 0.7 }).addTo(map);
+  
+  const cibuburCoords = collectCoords(cibuburStations, 'dukuh_to_cibubur');
+  if (cibuburCoords.length > 0) routePolylines.cibubur = L.polyline(cibuburCoords, { color: '#00c8ff', weight: 4, opacity: 0.7 }).addTo(map);
+  
+  const bekasiCoords = collectCoords(bekasiStations, 'dukuh_to_bekasi');
+  if (bekasiCoords.length > 0) routePolylines.bekasi = L.polyline(bekasiCoords, { color: '#ff9900', weight: 4, opacity: 0.7 }).addTo(map);
+  
+  if (!mainCoords.length) {
+    const makeLineCoords = (stIds) => stIds.map(id => [STATIONS[id].lat, STATIONS[id].lon]);
+    L.polyline(makeLineCoords(ROUTES.cibubur_to_dukuh.slice(4)), { color: '#a855f7', weight: 4, opacity: 0.7 }).addTo(map);
+    L.polyline(makeLineCoords(ROUTES.cibubur_to_dukuh.slice(0, 5)), { color: '#00c8ff', weight: 4, opacity: 0.7 }).addTo(map);
+    L.polyline(makeLineCoords(ROUTES.bekasi_to_dukuh.slice(0, 7)), { color: '#ff9900', weight: 4, opacity: 0.7 }).addTo(map);
+  }
+}
+
+// Station markers
+const stationMarkers = {};
+Object.entries(STATIONS).forEach(([id, st]) => {
+  const lineColors = st.lines.map(l => LINE_COLORS[l] || '#fff');
+  const color = lineColors[0];
+  const icon = L.divIcon({
+    className: '',
+    html: `<div class="station-marker" style="border-color:${color};width:${id==='cawang'?14:9}px;height:${id==='cawang'?14:9}px;box-shadow:0 0 6px ${color}40"></div>`,
+    iconSize: [14, 14],
+    iconAnchor: [7, 7],
+  });
+  const marker = L.marker([st.lat, st.lon], { icon }).addTo(map);
+  marker.bindPopup(`<div class="popup-title">🚉 ${st.name}</div><div class="popup-sub">Jalur: ${st.lines.join(', ')}</div><div class="popup-sub" id="popup-next-${id}">Menghitung...</div>`, { maxWidth: 200 });
+  marker.on('click', () => { switchTabMobile('schedule'); renderScheduleFor(id); });
+  stationMarkers[id] = marker;
+});
+
+// ═══════════════════════════════════════════════════════════════
+// TRAIN MARKERS
+// ═══════════════════════════════════════════════════════════════
+const trainMarkers = {};
+let selectedTrain = null;
+
+function getTrainMarkerKey(train) { return train.id + '-' + train.route; }
+
+function getOrCreateMarker(train) {
+  const markerKey = getTrainMarkerKey(train);
+  if (trainMarkers[markerKey]) return trainMarkers[markerKey];
+  const icon = L.divIcon({
+    className: '',
+    html: `<div class="train-marker" id="tm-${markerKey}" style="background:${train.color};color:#000;border-color:${train.color}80;box-shadow:0 0 10px ${train.color}"></div>`,
+    iconSize: [18, 18],
+    iconAnchor: [9, 9],
+  });
+  const marker = L.marker([0, 0], { icon, zIndexOffset: 1000 }).addTo(map);
+  marker.bindPopup('', { maxWidth: 220 });
+  marker.on('click', () => selectTrain(markerKey));
+  trainMarkers[markerKey] = marker;
+  return marker;
+}
+
+function removeMarker(trainId) {
+  if (trainMarkers[trainId]) { map.removeLayer(trainMarkers[trainId]); delete trainMarkers[trainId]; }
+}
+
+function selectTrain(trainId) {
+  selectedTrain = trainId;
+  renderTrainList();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MOBILE TAB SWITCHING
+// ═══════════════════════════════════════════════════════════════
+function switchTabMobile(tabName) {
+  document.querySelectorAll('.bottom-sheet .tab-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.tab === tabName);
+    b.setAttribute('aria-selected', b.dataset.tab === tabName);
+  });
+  const panel = document.getElementById('panel-' + tabName);
+  if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// Tab button click handlers
+document.querySelectorAll('.bottom-sheet .tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => switchTabMobile(btn.dataset.tab));
+});
+
+// ═══════════════════════════════════════════════════════════════
+// DESKTOP TAB SWITCHING
+// ═══════════════════════════════════════════════════════════════
+function switchTabDesktop(name, btn) {
+  document.querySelectorAll('.sidebar-desktop .tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.sidebar-desktop .tab-content').forEach(c => c.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  document.getElementById('desktop-' + name).classList.add('active');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RENDERING
+// ═══════════════════════════════════════════════════════════════
+function renderTrainList() {
+  const t = simTime;
+  const activeTrains = ALL_TRAINS.map(train => ({ train, state: getTrainState(train, t) })).filter(x => x.state !== null);
+ document.getElementById('stat-running').textContent = activeTrains.length;
+  document.getElementById('stat-running-desktop').textContent = activeTrains.length;
+
+  let html = '';
+  if (activeTrains.length === 0) html = '<div style="padding:20px;color:var(--text-dim);font-size:12px;text-align:center">Tidak ada kereta aktif saat ini</div>';
+  activeTrains.forEach(({ train, state }) => {
+    const markerKey = getTrainMarkerKey(train);
+    const isSelected = selectedTrain === markerKey;
+    const lineClass = `badge-${train.line}`;
+    const lineLabel = train.line === 'cibubur' ? 'CIBUBUR' : train.line === 'bekasi' ? 'BEKASI' : 'MAIN';
+    const pct = Math.round(state.progress * 100);
+    const nextName = state.nextStation ? STATIONS[state.nextStation]?.name : '-';
+    html += `<div class="train-card ${isSelected ? 'selected' : ''}" data-line="${train.line}" onclick="selectTrain('${markerKey}')">
+      <div class="train-header">
+        <span class="train-badge ${lineClass}">${lineLabel}</span>
+        <span class="train-name">${train.id}</span>
+      </div>
+      <div class="train-route">${train.origin} ${train.direction} ${train.dest}</div>
+      <div class="train-progress"><div class="train-progress-fill" style="width:${pct}%;background:${train.color}"></div></div>
+      <div class="train-status">
+        <span>${state.phase === 'dwell' ? 'Di stasiun '+STATIONS[state.stationId]?.name : 'Menuju '+nextName}</span>
+        ${state.eta ? `<span>${state.eta} mnt</span>` : '<span>Di stasiun</span>'}
+      </div>
+    </div>`;
+  });
+  document.getElementById('train-list').innerHTML = html;
+  document.getElementById('train-list-desktop').innerHTML = html;
+}
+
+function renderStationList() {
+  const t = simTime;
+  let html = '';
+  Object.entries(STATIONS).forEach(([id, st]) => {
+    let minWait = Infinity, nextArrival = null;
+    ALL_TRAINS.forEach(train => {
+      const state = getTrainState(train, t);
+      if (!state) return;
+      const timings = train.timings;
+      for (let i = 0; i < timings.length; i++) {
+        if (timings[i].stationId === id && timings[i].arriveAt >= t - 60) {
+          const wait = timings[i].arriveAt - t;
+          if (wait >= 0 && wait < minWait) { minWait = wait; nextArrival = { train, wait }; }
+          break;
+        }
+      }
+    });
+    const color = LINE_COLORS[st.lines[0]] || '#fff';
+    const waitStr = nextArrival ? (nextArrival.wait < 60 ? 'Tiba' : `${Math.ceil(nextArrival.wait/60)} mnt`) : '-';
+    const lineKey = st.lines.length > 1 ? 'junction' : st.lines[0];
+    html += `<div class="station-card" data-line="${lineKey}" onclick="focusStation('${id}')">
+      <div class="station-dot"></div>
+      <div class="station-info">
+        <div class="station-name">${st.name}</div>
+        <div class="station-next">Berikutnya: ${nextArrival ? nextArrival.train.direction : 'Tidak ada'}</div>
+      </div>
+      <div class="station-wait">${waitStr}</div>
+    </div>`;
+  });
+  document.getElementById('station-list').innerHTML = html;
+  document.getElementById('station-list-desktop').innerHTML = html;
+}
+
+function renderScheduleFor(stationId) {
+  const st = STATIONS[stationId];
+  if (!st) return;
+  const t = simTime;
+  const upcoming = [];
+  ALL_TRAINS.forEach(train => {
+    train.timings.forEach(timing => {
+      if (timing.stationId === stationId) upcoming.push({ train, arriveAt: timing.arriveAt, departAt: timing.departAt });
+    });
+  });
+  upcoming.sort((a, b) => a.arriveAt - b.arriveAt);
+  const relevant = upcoming.filter(u => u.departAt >= t - 300).slice(0, 20);
+  let html = `<div class="schedule-section">
+    <div class="schedule-header"><span class="schedule-station">Jadwal — ${st.name}</span></div>`;
+  relevant.forEach(({ train, arriveAt, departAt }) => {
+    const diff = arriveAt - t;
+    let statusClass, statusText;
+    if (diff < -DWELL_TIME) { statusClass = 'status-done'; statusText = 'Lewat'; }
+    else if (diff <= 0) { statusClass = 'status-running'; statusText = 'Di sini'; }
+    else if (diff < 180) { statusClass = 'status-running'; statusText = `${Math.ceil(diff/60)}m`; }
+    else { statusClass = 'status-waiting'; statusText = `${Math.ceil(diff/60)}m`; }
+    const lineIcon = train.line === 'cibubur' ? '🔵' : train.line === 'bekasi' ? '🟠' : '🟣';
+    html += `<div class="sched-row">
+      <span class="sched-time">${secondsToTime(arriveAt).slice(0,5)}</span>
+      <span class="sched-dest">${lineIcon} ${train.direction}</span>
+      <span class="sched-status ${statusClass}">${statusText}</span>
+    </div>`;
+  });
+  html += '</div>';
+  document.getElementById('schedule-content').innerHTML = html;
+  document.getElementById('schedule-content-desktop').innerHTML = html;
+}
+
+function focusStation(id) {
+  const st = STATIONS[id];
+  map.setView([st.lat, st.lon], 15, { animate: true });
+  stationMarkers[id]?.openPopup();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// THEME TOGGLE
+// ═══════════════════════════════════════════════════════════════
+function initTheme() {
+  const saved = localStorage.getItem('lrt-theme');
+  if (saved) document.documentElement.setAttribute('data-theme', saved);
+  else document.documentElement.setAttribute('data-theme', 'dark');
+}
+initTheme();
+
+document.getElementById('theme-toggle').addEventListener('click', () => {
+  const current = document.documentElement.getAttribute('data-theme');
+  const next = current === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('lrt-theme', next);
+});
+
+// ═══════════════════════════════════════════════════════════════
+// MAIN UPDATE LOOP
+// ═══════════════════════════════════════════════════════════════
+let frameCount = 0;
+function update() {
+  updateSimTime();
+  const t = simTime;
+  const timeStr = secondsToTime(t);
+  document.getElementById('clock-time').textContent = timeStr.slice(0,8);
+  document.getElementById('clock-time-lg').textContent = timeStr.slice(0,8);
+
+  const activeIds = new Set();
+  ALL_TRAINS.forEach(train => {
+    const markerKey = getTrainMarkerKey(train);
+    const state = getTrainState(train, t);
+    if (!state) { if (trainMarkers[markerKey]) removeMarker(markerKey); return; }
+    activeIds.add(markerKey);
+    const marker = getOrCreateMarker(train);
+    marker.setLatLng([state.lat, state.lon]);
+    if (marker.isPopupOpen()) {
+      const nextName = state.nextStation ? STATIONS[state.nextStation]?.name : '-';
+      marker.getPopup().setContent(`<div class="popup-title">🚈 Kereta ${train.id}</div><div class="popup-sub">${train.origin} ${train.direction} ${train.dest}</div><div style="margin-top:6px"><div class="popup-sub">Status: <span class="popup-val">${state.phase === 'dwell' ? 'Di '+STATIONS[state.stationId]?.name : 'Bergerak'}</span></div><div class="popup-sub">Berikutnya: <span class="popup-val">${nextName}</span></div>${state.eta ? `<div class="popup-sub">ETA: <span class="popup-val">${state.eta} mnt</span></div>` : ''}</div>`);
+    }
+  });
+  Object.keys(trainMarkers).forEach(id => { if (!activeIds.has(id)) removeMarker(id); });
+
+  if (frameCount % 5 === 0) { renderTrainList(); renderStationList(); }
+  frameCount++;
+  requestAnimationFrame(update);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════
+async function init() {
+  await loadScheduleData();
+  await loadRouteSegments();
+  drawRouteLines();
+  initSimTime();
+  update();
+}
+init();
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'r' || e.key === 'R') {
+    simTime = getRealSecondsSinceMidnight();
+    simSpeed = 1;
+    document.getElementById('speed-display').textContent = '1×';
+    document.getElementById('speed-display-desktop').textContent = '1×';
+  }
+});
+</script>
+</body>
+</html>
