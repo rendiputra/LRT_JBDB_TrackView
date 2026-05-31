@@ -1,0 +1,297 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - generic:
+      - generic:
+        - img
+      - generic:
+        - button [ref=e40] [cursor=pointer]
+        - button [ref=e42] [cursor=pointer]
+        - button [ref=e44] [cursor=pointer]
+        - button [ref=e46] [cursor=pointer]
+        - button [ref=e48] [cursor=pointer]
+        - button [ref=e50] [cursor=pointer]
+        - button [ref=e52] [cursor=pointer]
+        - button [ref=e54] [cursor=pointer]
+        - button [ref=e56] [cursor=pointer]
+        - button [ref=e58] [cursor=pointer]
+        - button [ref=e60] [cursor=pointer]
+        - button [ref=e62] [cursor=pointer]
+        - button [ref=e64] [cursor=pointer]
+        - button [ref=e66] [cursor=pointer]
+        - button [ref=e68] [cursor=pointer]
+        - button [ref=e70] [cursor=pointer]
+        - button [ref=e72] [cursor=pointer]
+        - button [ref=e74] [cursor=pointer]
+        - button [ref=e76] [cursor=pointer]
+        - button [ref=e78] [cursor=pointer]
+        - button [ref=e80] [cursor=pointer]
+        - button [ref=e82] [cursor=pointer]
+        - button [ref=e84] [cursor=pointer]
+        - button [ref=e86] [cursor=pointer]
+        - button [ref=e88] [cursor=pointer]
+        - button [ref=e90] [cursor=pointer]
+        - button [ref=e92] [cursor=pointer]
+        - button [ref=e94] [cursor=pointer]
+        - button [ref=e96] [cursor=pointer]
+        - button [ref=e98] [cursor=pointer]
+        - button [ref=e100] [cursor=pointer]
+        - button [ref=e102] [cursor=pointer]
+        - button [ref=e104] [cursor=pointer]
+        - button [ref=e414] [cursor=pointer]
+    - generic:
+      - generic [ref=e106]: "Data: OpenStreetMap • GAPEKA KAI | ©OpenStreetMap ©CARTO"
+      - generic [ref=e107]:
+        - button "Zoom in" [ref=e108] [cursor=pointer]: +
+        - button "Zoom out" [ref=e109] [cursor=pointer]: −
+  - button "Toggle theme" [ref=e110] [cursor=pointer]:
+    - img [ref=e111]
+  - generic [ref=e113]:
+    - button "Decrease speed" [ref=e114] [cursor=pointer]: −
+    - generic [ref=e115]: 1×
+    - button "Increase speed" [ref=e116] [cursor=pointer]: +
+  - generic [ref=e117]:
+    - tablist [ref=e120]:
+      - tab "Kereta" [selected] [ref=e121] [cursor=pointer]:
+        - img [ref=e122]
+        - generic [ref=e127]: Kereta
+      - tab "Stasiun" [ref=e128] [cursor=pointer]:
+        - img [ref=e129]
+        - generic [ref=e132]: Stasiun
+      - tab "Jadwal" [ref=e133] [cursor=pointer]:
+        - img [ref=e134]
+        - generic [ref=e137]: Jadwal
+    - generic [ref=e138]:
+      - generic [ref=e139]:
+        - generic [ref=e140]: 16:34:36
+        - generic [ref=e141]: Minggu, 31 Mei 2026
+      - generic [ref=e142]: "LIBUR: Waisak Day (Buddha's Anniversary) (Tentative Date)"
+    - generic [ref=e416]:
+      - generic [ref=e143]:
+        - generic [ref=e144]:
+          - generic [ref=e145]: Kereta Aktif
+          - generic [ref=e146]: "16"
+        - generic [ref=e147]:
+          - generic [ref=e417] [cursor=pointer]:
+            - generic [ref=e418]:
+              - generic [ref=e419]: BEKASI
+              - generic [ref=e420]: B41-41
+            - generic [ref=e421]: Dukuh Atas 2 → Jatimulya Jatimulya
+            - generic [ref=e424]:
+              - generic [ref=e425]: Di stasiun Cikunir 1
+              - generic [ref=e426]: Di stasiun
+          - generic [ref=e427] [cursor=pointer]:
+            - generic [ref=e428]:
+              - generic [ref=e429]: BEKASI
+              - generic [ref=e430]: B42-42
+            - generic [ref=e431]: Dukuh Atas 2 → Jatimulya Jatimulya
+            - generic [ref=e434]:
+              - generic [ref=e435]: Menuju Halim
+              - generic [ref=e436]: 2 mnt
+          - generic [ref=e437] [cursor=pointer]:
+            - generic [ref=e438]:
+              - generic [ref=e439]: BEKASI
+              - generic [ref=e440]: B43-43
+            - generic [ref=e441]: Dukuh Atas 2 → Jatimulya Jatimulya
+            - generic [ref=e444]:
+              - generic [ref=e445]: Di stasiun Pancoran
+              - generic [ref=e446]: Di stasiun
+          - generic [ref=e447] [cursor=pointer]:
+            - generic [ref=e448]:
+              - generic [ref=e449]: BEKASI
+              - generic [ref=e450]: B44-44
+            - generic [ref=e451]: Dukuh Atas 2 → Jatimulya Jatimulya
+            - generic [ref=e454]:
+              - generic [ref=e455]: Menuju Setiabudi
+              - generic [ref=e456]: 1 mnt
+          - generic [ref=e457] [cursor=pointer]:
+            - generic [ref=e458]:
+              - generic [ref=e459]: BEKASI
+              - generic [ref=e460]: B45-45
+            - generic [ref=e461]: Jatimulya → Dukuh Atas Dukuh Atas 2
+            - generic [ref=e464]:
+              - generic [ref=e465]: Di stasiun Rasuna Said
+              - generic [ref=e466]: Di stasiun
+          - generic [ref=e467] [cursor=pointer]:
+            - generic [ref=e468]:
+              - generic [ref=e469]: BEKASI
+              - generic [ref=e470]: B46-46
+            - generic [ref=e471]: Jatimulya → Dukuh Atas Dukuh Atas 2
+            - generic [ref=e474]:
+              - generic [ref=e475]: Menuju Cikoko
+              - generic [ref=e476]: 1 mnt
+          - generic [ref=e477] [cursor=pointer]:
+            - generic [ref=e478]:
+              - generic [ref=e479]: BEKASI
+              - generic [ref=e480]: B47-47
+            - generic [ref=e481]: Jatimulya → Dukuh Atas Dukuh Atas 2
+            - generic [ref=e484]:
+              - generic [ref=e485]: Menuju Halim
+              - generic [ref=e486]: 2 mnt
+          - generic [ref=e487] [cursor=pointer]:
+            - generic [ref=e488]:
+              - generic [ref=e489]: BEKASI
+              - generic [ref=e490]: B48-48
+            - generic [ref=e491]: Jatimulya → Dukuh Atas Dukuh Atas 2
+            - generic [ref=e494]:
+              - generic [ref=e495]: Menuju Cikunir 2
+              - generic [ref=e496]: 1 mnt
+          - generic [ref=e497] [cursor=pointer]:
+            - generic [ref=e498]:
+              - generic [ref=e499]: CIBUBUR
+              - generic [ref=e500]: C40-40
+            - generic [ref=e501]: Dukuh Atas 2 → Harjamukti Harjamukti
+            - generic [ref=e504]:
+              - generic [ref=e505]: Menuju Harjamukti
+              - generic [ref=e506]: 3 mnt
+          - generic [ref=e507] [cursor=pointer]:
+            - generic [ref=e508]:
+              - generic [ref=e509]: CIBUBUR
+              - generic [ref=e510]: C41-41
+            - generic [ref=e511]: Dukuh Atas 2 → Harjamukti Harjamukti
+            - generic [ref=e514]:
+              - generic [ref=e515]: Menuju TMII
+              - generic [ref=e516]: 1 mnt
+          - generic [ref=e517] [cursor=pointer]:
+            - generic [ref=e518]:
+              - generic [ref=e519]: CIBUBUR
+              - generic [ref=e520]: C42-42
+            - generic [ref=e521]: Dukuh Atas 2 → Harjamukti Harjamukti
+            - generic [ref=e524]:
+              - generic [ref=e525]: Menuju Cawang
+              - generic [ref=e526]: 3 mnt
+          - generic [ref=e527] [cursor=pointer]:
+            - generic [ref=e528]:
+              - generic [ref=e529]: CIBUBUR
+              - generic [ref=e530]: C43-43
+            - generic [ref=e531]: Dukuh Atas 2 → Harjamukti Harjamukti
+            - generic [ref=e534]:
+              - generic [ref=e535]: Di stasiun Kuningan
+              - generic [ref=e536]: Di stasiun
+          - generic [ref=e537] [cursor=pointer]:
+            - generic [ref=e538]:
+              - generic [ref=e539]: CIBUBUR
+              - generic [ref=e540]: C45-45
+            - generic [ref=e541]: Harjamukti → Dukuh Atas Dukuh Atas 2
+            - generic [ref=e544]:
+              - generic [ref=e545]: Menuju Kuningan
+              - generic [ref=e546]: 2 mnt
+          - generic [ref=e547] [cursor=pointer]:
+            - generic [ref=e548]:
+              - generic [ref=e549]: CIBUBUR
+              - generic [ref=e550]: C46-46
+            - generic [ref=e551]: Harjamukti → Dukuh Atas Dukuh Atas 2
+            - generic [ref=e554]:
+              - generic [ref=e555]: Di stasiun Cawang
+              - generic [ref=e556]: Di stasiun
+          - generic [ref=e557] [cursor=pointer]:
+            - generic [ref=e558]:
+              - generic [ref=e559]: CIBUBUR
+              - generic [ref=e560]: C47-47
+            - generic [ref=e561]: Harjamukti → Dukuh Atas Dukuh Atas 2
+            - generic [ref=e564]:
+              - generic [ref=e565]: Menuju TMII
+              - generic [ref=e566]: 2 mnt
+          - generic [ref=e567] [cursor=pointer]:
+            - generic [ref=e568]:
+              - generic [ref=e569]: CIBUBUR
+              - generic [ref=e570]: C48-48
+            - generic [ref=e571]: Harjamukti → Dukuh Atas Dukuh Atas 2
+            - generic [ref=e573]:
+              - generic [ref=e574]: Di stasiun Harjamukti
+              - generic [ref=e575]: Di stasiun
+      - generic [ref=e298]:
+        - generic [ref=e299]:
+          - generic [ref=e300]: Stasiun
+          - generic [ref=e301]: "18"
+        - generic [ref=e302]:
+          - generic [ref=e576] [cursor=pointer]:
+            - generic [ref=e578]:
+              - generic [ref=e579]: Dukuh Atas
+              - generic [ref=e580]: "Berikutnya: → Dukuh Atas"
+            - generic [ref=e581]: 6 mnt
+          - generic [ref=e582] [cursor=pointer]:
+            - generic [ref=e584]:
+              - generic [ref=e585]: Setiabudi
+              - generic [ref=e586]: "Berikutnya: → Jatimulya"
+            - generic [ref=e587]: Tiba
+          - generic [ref=e588] [cursor=pointer]:
+            - generic [ref=e590]:
+              - generic [ref=e591]: Rasuna Said
+              - generic [ref=e592]: "Berikutnya: → Jatimulya"
+            - generic [ref=e593]: 4 mnt
+          - generic [ref=e594] [cursor=pointer]:
+            - generic [ref=e596]:
+              - generic [ref=e597]: Kuningan
+              - generic [ref=e598]: "Berikutnya: → Dukuh Atas"
+            - generic [ref=e599]: 2 mnt
+          - generic [ref=e600] [cursor=pointer]:
+            - generic [ref=e602]:
+              - generic [ref=e603]: Pancoran
+              - generic [ref=e604]: "Berikutnya: → Dukuh Atas"
+            - generic [ref=e605]: 4 mnt
+          - generic [ref=e606] [cursor=pointer]:
+            - generic [ref=e608]:
+              - generic [ref=e609]: Cikoko
+              - generic [ref=e610]: "Berikutnya: → Dukuh Atas"
+            - generic [ref=e611]: Tiba
+          - generic [ref=e612] [cursor=pointer]:
+            - generic [ref=e614]:
+              - generic [ref=e615]: Ciliwung
+              - generic [ref=e616]: "Berikutnya: → Dukuh Atas"
+            - generic [ref=e617]: 3 mnt
+          - generic [ref=e618] [cursor=pointer]:
+            - generic [ref=e620]:
+              - generic [ref=e621]: Cawang
+              - generic [ref=e622]: "Berikutnya: → Harjamukti"
+            - generic [ref=e623]: 3 mnt
+          - generic [ref=e624] [cursor=pointer]:
+            - generic [ref=e626]:
+              - generic [ref=e627]: TMII
+              - generic [ref=e628]: "Berikutnya: → Harjamukti"
+            - generic [ref=e629]: Tiba
+          - generic [ref=e630] [cursor=pointer]:
+            - generic [ref=e632]:
+              - generic [ref=e633]: Kampung Rambutan
+              - generic [ref=e634]: "Berikutnya: → Harjamukti"
+            - generic [ref=e635]: 5 mnt
+          - generic [ref=e636] [cursor=pointer]:
+            - generic [ref=e638]:
+              - generic [ref=e639]: Ciracas
+              - generic [ref=e640]: "Berikutnya: → Dukuh Atas"
+            - generic [ref=e641]: 7 mnt
+          - generic [ref=e642] [cursor=pointer]:
+            - generic [ref=e644]:
+              - generic [ref=e645]: Harjamukti
+              - generic [ref=e646]: "Berikutnya: → Harjamukti"
+            - generic [ref=e647]: 3 mnt
+          - generic [ref=e648] [cursor=pointer]:
+            - generic [ref=e650]:
+              - generic [ref=e651]: Halim
+              - generic [ref=e652]: "Berikutnya: → Jatimulya"
+            - generic [ref=e653]: 2 mnt
+          - generic [ref=e654] [cursor=pointer]:
+            - generic [ref=e656]:
+              - generic [ref=e657]: Jatibening Baru
+              - generic [ref=e658]: "Berikutnya: → Jatimulya"
+            - generic [ref=e659]: 8 mnt
+          - generic [ref=e660] [cursor=pointer]:
+            - generic [ref=e662]:
+              - generic [ref=e663]: Cikunir 1
+              - generic [ref=e664]: "Berikutnya: → Dukuh Atas"
+            - generic [ref=e665]: 4 mnt
+          - generic [ref=e666] [cursor=pointer]:
+            - generic [ref=e668]:
+              - generic [ref=e669]: Cikunir 2
+              - generic [ref=e670]: "Berikutnya: → Dukuh Atas"
+            - generic [ref=e671]: Tiba
+          - generic [ref=e672] [cursor=pointer]:
+            - generic [ref=e674]:
+              - generic [ref=e675]: Bekasi Barat
+              - generic [ref=e676]: "Berikutnya: → Jatimulya"
+            - generic [ref=e677]: 8 mnt
+          - generic [ref=e678] [cursor=pointer]:
+            - generic [ref=e680]:
+              - generic [ref=e681]: Jatimulya
+              - generic [ref=e682]: "Berikutnya: → Jatimulya"
+            - generic [ref=e683]: 12 mnt
+      - generic [ref=e413]: Ketuk stasiun di peta untuk melihat jadwal

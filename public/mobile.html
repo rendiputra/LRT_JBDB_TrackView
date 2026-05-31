@@ -1141,6 +1141,12 @@ function selectTrain(trainId) {
 // MOBILE TAB SWITCHING
 // ═══════════════════════════════════════════════════════════════
 function switchTabMobile(tabName) {
+  const sheet = document.getElementById('bottom-sheet');
+  // Expand sheet if it's collapsed (ensure drag handle remains accessible)
+  if (!sheet.classList.contains('expanded')) {
+    sheet.classList.add('expanded');
+  }
+
   document.querySelectorAll('.bottom-sheet .tab-btn').forEach(b => {
     b.classList.toggle('active', b.dataset.tab === tabName);
     b.setAttribute('aria-selected', b.dataset.tab === tabName);
