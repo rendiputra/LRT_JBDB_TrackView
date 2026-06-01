@@ -51,7 +51,7 @@ visualisasi-lrt/
 │   ├── schedule_data_weekdays.json  # Weekday schedule
 │   └── hari_libur/
 │       └── hari_libur2026.json  # Indonesian national holidays 2026
-├── build/                       # Build scripts
+├── build_data/                       # Build scripts
 │   ├── build_routes.py          # Generate route segments from OSM data
 │   ├── build_schedule.py       # Parse raw schedules into JSON
 │   └── potong_jalur.js          # Legacy Node.js script (deprecated)
@@ -95,7 +95,7 @@ Open [http://localhost:8000](http://localhost:8000) in your browser.
 If you need to regenerate schedule data from raw text files:
 
 ```bash
-python3 build/build_schedule.py
+python3 build_data/build_schedule.py
 ```
 
 ### Building Route Segments
@@ -103,7 +103,7 @@ python3 build/build_schedule.py
 If you need to regenerate route segments from OSM data:
 
 ```bash
-python3 build/build_routes.py
+python3 build_data/build_routes.py
 ```
 
 ## Schedule Logic
@@ -121,7 +121,7 @@ The application automatically selects the appropriate schedule based on the curr
 ### Data Flow
 
 1. Raw schedule text files (`data/raw_*.txt`) contain GAPEKA timing data
-2. `build/build_schedule.py` parses raw files into JSON format
+2. `build_data/build_schedule.py` parses raw files into JSON format
 3. `public/schedule_data*.json` contains parsed schedule data
 4. `index.html` loads schedule data and simulates train movements
 5. Route segments are loaded from `public/rute_lrt_siap_pakai.geojson`
